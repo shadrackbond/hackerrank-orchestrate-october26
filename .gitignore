@@ -1,0 +1,28 @@
+# Credentials and private configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local dependencies and caches
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.DS_Store
+
+# Generated submission files and raw trace exports
+/output.csv
+/code.zip
+/agent-trace/
+/agent-trace.zip
+
+# log.txt is intentionally tracked at the user's request. Append only;
+# redact secrets before writing. Never put raw private trace exports in Git.
+
