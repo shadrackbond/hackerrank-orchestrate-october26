@@ -48,3 +48,26 @@ Outcome recorded at 2026-10-24T17:20:07+00:00 (continuation of the same user tur
 * Re-read remote log.txt and confirmed its content matches the prepared genuine session record; both log entries contain one tool field and one model field, with the model field explicitly unresolved rather than falsely asserted compliant.
 * Checked four-file formatting, 32 public input/output examples, 94 manifest records, 15 policy rules, and the public seven-key step shape. No agent accuracy or runtime test success is claimed.
 * Exact hosted model metadata and authenticated page-only instructions remain open items. PR was not merged.
+
+## [2026-10-24T17:28:48+00:00] Restrict first PR to transcript and move plan to document
+
+User Prompt (verbatim, secrets redacted):
+nop I dont want you to put anything on the pr other than the chat trancript, the rest I want them as a document form please
+
+Agent Response Summary:
+Accepted the user's correction that PR #1 must contain only the chat transcript. Prepared removal of .gitignore and both planning/workflow Markdown files from the PR's final diff, while preserving the existing transcript and appending this genuine turn. The work plan and transcript guidance will be delivered separately as a Word document, without committing the document or its authoring files to the repository. The previously recorded exact-model metadata limitation remains unresolved; no model identifier is guessed.
+
+Actions:
+* Re-read PR #1 metadata and the current remote log before preparing the correction.
+* Preserved the previously prepared work plan and workflow guidance locally for conversion into a separate Word document.
+* Prepared a transcript-only branch update and a matching PR title and description.
+* Applied the documents skill's render-and-inspect workflow for the separate deliverable.
+
+Context:
+tool=Codex
+model=unavailable: exact runtime model identifier is not exposed by this hosted session
+branch=docs/initialize-transcript-and-plan
+repo_root=/workspace/scratch/ef4c6ed57685/hackerrank-orchestrate-october26
+worktree=/workspace/scratch/ef4c6ed57685/hackerrank-orchestrate-october26
+parent_agent=none
+model_metadata_status=unresolved; earlier provenance and metadata exception remain in force
