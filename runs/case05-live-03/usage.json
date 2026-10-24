@@ -1,0 +1,34 @@
+{
+  "provider": "OpenAI via Codex login",
+  "requested_model": "gpt-6-astra",
+  "runtime_invocations": 1,
+  "completed_turns": 1,
+  "usage_available": true,
+  "outcome": "finished",
+  "tokens": {
+    "input_tokens": 104774,
+    "cached_input_tokens": 73344,
+    "output_tokens": 352,
+    "reasoning_output_tokens": 0
+  },
+  "raw_usage_events": [
+    {
+      "input_tokens": 104774,
+      "cached_input_tokens": 73344,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 352,
+      "reasoning_output_tokens": 0
+    }
+  ],
+  "estimated_cost": null,
+  "cost_note": "Login runtime does not report a per-call price; not estimated.",
+  "total_tokens": 105126,
+  "reported_models": [
+    "gpt-6-astra"
+  ],
+  "usage_bearing_responses": 6,
+  "provider_request_count": null,
+  "thread_ids": [
+    "01a16f88-916e-77f1-867d-1f3abf501e02"
+  ]
+}

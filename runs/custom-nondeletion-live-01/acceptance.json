@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "expected": {
+    "case_id": "custom_non_deletion",
+    "deletion_status": "NOT_APPLICABLE",
+    "steps_json": []
+  }
+}

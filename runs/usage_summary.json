@@ -1,0 +1,133 @@
+{
+  "runs": [
+    {
+      "run": "runs/case05-live-01",
+      "provider": "OpenAI via Codex login",
+      "requested_model": "gpt-6-astra",
+      "runtime_invocations": 1,
+      "completed_turns": 0,
+      "usage_available": false,
+      "outcome": "runtime_error",
+      "tokens": null,
+      "raw_usage_events": [],
+      "estimated_cost": null,
+      "cost_note": "Login runtime does not report a per-call price; not estimated.",
+      "total_tokens": null,
+      "reported_models": [],
+      "usage_bearing_responses": null,
+      "provider_request_count": null,
+      "thread_ids": []
+    },
+    {
+      "run": "runs/case05-live-02",
+      "provider": "OpenAI via Codex login",
+      "requested_model": "gpt-6-astra",
+      "runtime_invocations": 1,
+      "completed_turns": 1,
+      "usage_available": true,
+      "outcome": "finished",
+      "tokens": {
+        "input_tokens": 63232,
+        "cached_input_tokens": 55168,
+        "output_tokens": 219,
+        "reasoning_output_tokens": 15
+      },
+      "raw_usage_events": [
+        {
+          "input_tokens": 63232,
+          "cached_input_tokens": 55168,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 219,
+          "reasoning_output_tokens": 15
+        }
+      ],
+      "estimated_cost": null,
+      "cost_note": "Login runtime does not report a per-call price; not estimated.",
+      "total_tokens": 63451,
+      "reported_models": [
+        "gpt-6-astra"
+      ],
+      "usage_bearing_responses": 4,
+      "provider_request_count": null,
+      "thread_ids": [
+        "01a16f87-5a5d-7a62-b4d4-4bbdfa01c0d8"
+      ]
+    },
+    {
+      "run": "runs/case05-live-03",
+      "provider": "OpenAI via Codex login",
+      "requested_model": "gpt-6-astra",
+      "runtime_invocations": 1,
+      "completed_turns": 1,
+      "usage_available": true,
+      "outcome": "finished",
+      "tokens": {
+        "input_tokens": 104774,
+        "cached_input_tokens": 73344,
+        "output_tokens": 352,
+        "reasoning_output_tokens": 0
+      },
+      "raw_usage_events": [
+        {
+          "input_tokens": 104774,
+          "cached_input_tokens": 73344,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 352,
+          "reasoning_output_tokens": 0
+        }
+      ],
+      "estimated_cost": null,
+      "cost_note": "Login runtime does not report a per-call price; not estimated.",
+      "total_tokens": 105126,
+      "reported_models": [
+        "gpt-6-astra"
+      ],
+      "usage_bearing_responses": 6,
+      "provider_request_count": null,
+      "thread_ids": [
+        "01a16f88-916e-77f1-867d-1f3abf501e02"
+      ]
+    },
+    {
+      "run": "runs/custom-nondeletion-live-01",
+      "provider": "OpenAI via Codex login",
+      "requested_model": "gpt-6-astra",
+      "reported_models": [
+        "gpt-6-astra"
+      ],
+      "usage_bearing_responses": 4,
+      "provider_request_count": null,
+      "thread_ids": [
+        "01a16f8a-e494-7d41-8e36-27cb42791859"
+      ],
+      "runtime_invocations": 1,
+      "completed_turns": 1,
+      "usage_available": true,
+      "outcome": "finished",
+      "tokens": {
+        "input_tokens": 61297,
+        "cached_input_tokens": 57344,
+        "output_tokens": 246,
+        "reasoning_output_tokens": 0
+      },
+      "raw_usage_events": [
+        {
+          "input_tokens": 61297,
+          "cached_input_tokens": 57344,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 246,
+          "reasoning_output_tokens": 0
+        }
+      ],
+      "estimated_cost": null,
+      "cost_note": "Login runtime does not report a per-call price; not estimated.",
+      "total_tokens": 61543
+    }
+  ],
+  "runtime_invocations": 4,
+  "runs_with_reported_usage": 3,
+  "input_tokens": 229303,
+  "output_tokens": 817,
+  "cached_input_tokens": 185856,
+  "note": "Includes approval-blocked attempt. Initialization failure had no reported usage; not assumed zero. Monetary cost unavailable."
+}

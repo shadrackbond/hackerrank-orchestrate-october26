@@ -37,6 +37,50 @@ Run the starter Python entry point with:
 python3 code/main.py
 ```
 
+### Current one-case prototype
+
+The implemented CLI currently runs one review case, not the full submission.
+It uses Python 3.11+ (standard library only) and an installed, authenticated Codex
+CLI with `exec --json` and per-tool MCP approval configuration. Credentials stay
+with the Codex login; this application does not read or copy authentication files.
+
+```bash
+python3 code/main.py --samples --case case_05 --model gpt-6-astra --run-dir runs/my-review
+python3 -m unittest discover -s tests -v
+python3 code/evaluation/review.py --run-dir runs/my-review --compare-sample
+```
+
+Choose a fresh run directory each time. The model identifier is explicit; use one
+available through your configured login. The runtime uses POSIX process groups
+for timeout cleanup, so this first adapter currently requires Linux or macOS.
+
+The predictor reads request inputs, identities, identity history, policy, activity,
+and manifest-listed evidence. It never reads `sample_output.csv`; the optional
+review command reads that file only after prediction. The model invokes five
+case-scoped MCP tools; shell, apps, web search, and multi-agent tools are disabled.
+
+Outputs in the run directory include native model events, actual usage,
+`investigation.json` with the coverage ledger and accepted/rejected proposals, and
+`review_output.csv` only when a proposal is accepted. The review command also
+records a deliberately invalid status proposal and its validator rejection,
+explicitly labelled as a deterministic review probe rather than a model action.
+
+The first semantic adapter supports complete SQL customer-profile primary/replica
+snapshots and the supplied `USER_PROFILE` deletion rule. Text sources are indexed
+once per server process. Unsupported matching evidence blocks acceptance;
+uninspected PDF/image sources are listed as deferred. An evidence-backed
+`INCOMPLETE` review can be emitted within this supported scope, but its plan is
+not certified exhaustive across deferred formats. `COMPLETE` is blocked while
+deferred sources remain. Other policies, process-state adapters, multimodal
+extraction, and full-dataset generation are not implemented yet.
+
+Default limits: 10 tool calls (including proposals), 3 proposal attempts, 10 seconds
+per tool, and 180 seconds for the complete model runtime. Override with
+`--tool-calls`, `--proposal-attempts`, `--tool-seconds`, and `--case-seconds`.
+Exhaustion or runtime failure produces internal `UNRESOLVED`, no final status,
+no review CSV, and exit code 2. Token counts come from runtime usage events;
+unavailable counts and monetary cost are recorded as unavailable, not zero.
+
 The blank template at `dataset/output.csv` is provided as a reference. Your final generated file for submission must be the root-level `output.csv`.
 
 

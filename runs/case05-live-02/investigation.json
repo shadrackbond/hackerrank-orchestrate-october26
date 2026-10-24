@@ -1,0 +1,40 @@
+{
+  "request": {
+    "case_id": "case_05",
+    "email": "leila.haddad@yahoo.com",
+    "requested_at": "2026-08-27T14:17:00Z",
+    "reported_status": "COMPLETE",
+    "reported_at": "2026-08-28T09:03:00Z",
+    "audit_at": "2026-09-08T13:40:00Z",
+    "request_text": "I deleted this account and received a confirmation, but the same email address is still recognized. Please remove any remaining copy of my profile."
+  },
+  "identity": null,
+  "limits": {
+    "tool_calls": 10,
+    "proposal_attempts": 3,
+    "tool_seconds": 10,
+    "case_seconds": 180
+  },
+  "tool_calls": 0,
+  "proposal_attempts": 0,
+  "internal_state": "UNRESOLVED",
+  "scope": "SQL customer profile primary/replica snapshots; other adapters deferred",
+  "ledger": {
+    "identifiers_searched": [],
+    "eligible_sources_inspected": [],
+    "discovered_resources": [],
+    "discovered_processes": [],
+    "unresolved_contradictions": [],
+    "remaining_gaps": [
+      "Identity and evidence not searched",
+      "No accepted model proposal"
+    ],
+    "deferred_sources": [],
+    "candidates": [],
+    "activity_inspected": false
+  },
+  "observations": [],
+  "activity_claims": [],
+  "trace": [],
+  "output": null
+}

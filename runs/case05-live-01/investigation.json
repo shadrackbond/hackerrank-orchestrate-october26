@@ -1,0 +1,11 @@
+{
+  "internal_state": "UNRESOLVED",
+  "output": null,
+  "ledger": {
+    "remaining_gaps": [
+      "Model runtime or MCP initialization failed",
+      "Model runtime ended: runtime_error",
+      "No accepted model proposal"
+    ]
+  }
+}

@@ -1,0 +1,501 @@
+{
+  "request": {
+    "case_id": "case_05",
+    "email": "leila.haddad@yahoo.com",
+    "requested_at": "2026-08-27T14:17:00Z",
+    "reported_status": "COMPLETE",
+    "reported_at": "2026-08-28T09:03:00Z",
+    "audit_at": "2026-09-08T13:40:00Z",
+    "request_text": "I deleted this account and received a confirmation, but the same email address is still recognized. Please remove any remaining copy of my profile."
+  },
+  "identity": {
+    "user_id": "user_05",
+    "aliases": [
+      {
+        "field": "user_id",
+        "value": "user_05",
+        "source": "user_identities.csv",
+        "available_at": "2026-02-14T17:33:00Z"
+      },
+      {
+        "field": "email",
+        "value": "leila.haddad@yahoo.com",
+        "source": "user_identities.csv",
+        "available_at": "2026-02-14T17:33:00Z"
+      },
+      {
+        "field": "phone",
+        "value": "+212 6 48 27 15 93",
+        "source": "user_identities.csv",
+        "available_at": "2026-02-14T17:33:00Z"
+      },
+      {
+        "field": "email_hash",
+        "value": "62667ed065b846a842474f916da51b658edb0f9754ab2da6bf38e68779ff0d08",
+        "source": "user_identities.csv",
+        "available_at": "2026-02-14T17:33:00Z"
+      }
+    ]
+  },
+  "limits": {
+    "tool_calls": 10,
+    "proposal_attempts": 3,
+    "tool_seconds": 10,
+    "case_seconds": 180
+  },
+  "tool_calls": 6,
+  "proposal_attempts": 1,
+  "internal_state": "SUPPORTED_SCOPE_RESOLVED",
+  "scope": "SQL customer profile primary/replica snapshots; other adapters deferred",
+  "ledger": {
+    "identifiers_searched": [
+      {
+        "field": "user_id",
+        "value": "user_05",
+        "source": "user_identities.csv",
+        "available_at": "2026-02-14T17:33:00Z"
+      },
+      {
+        "field": "email",
+        "value": "leila.haddad@yahoo.com",
+        "source": "user_identities.csv",
+        "available_at": "2026-02-14T17:33:00Z"
+      },
+      {
+        "field": "phone",
+        "value": "+212 6 48 27 15 93",
+        "source": "user_identities.csv",
+        "available_at": "2026-02-14T17:33:00Z"
+      },
+      {
+        "field": "email_hash",
+        "value": "62667ed065b846a842474f916da51b658edb0f9754ab2da6bf38e68779ff0d08",
+        "source": "user_identities.csv",
+        "available_at": "2026-02-14T17:33:00Z"
+      },
+      {
+        "field": "resource_id",
+        "value": "account_005",
+        "source": "validated SQL observation"
+      }
+    ],
+    "eligible_sources_inspected": [
+      "evidence_54"
+    ],
+    "discovered_resources": [
+      "account_005"
+    ],
+    "discovered_processes": [],
+    "unresolved_contradictions": [],
+    "remaining_gaps": [],
+    "deferred_sources": [
+      "evidence_09",
+      "evidence_14",
+      "evidence_18",
+      "evidence_19",
+      "evidence_23",
+      "evidence_27",
+      "evidence_28",
+      "evidence_32",
+      "evidence_37",
+      "evidence_42",
+      "evidence_46",
+      "evidence_55"
+    ],
+    "candidates": [
+      "evidence_54"
+    ],
+    "activity_inspected": true
+  },
+  "observations": [
+    {
+      "system_id": "account_service",
+      "resource_id": "account_005",
+      "category": "USER_PROFILE",
+      "state": "PRESENT",
+      "table": "customer_profiles_failover_replica",
+      "observed_at": "2026-09-02T23:00:00Z",
+      "evidence_id": "evidence_54",
+      "record": {
+        "resource_id": "account_005",
+        "user_id": "user_05",
+        "full_name": "Leila Haddad",
+        "email": "leila.haddad@yahoo.com",
+        "phone": "+212 6 48 27 15 93",
+        "account_status": "ACTIVE",
+        "updated_at": "2026-09-02T22:45:00Z"
+      }
+    },
+    {
+      "system_id": "account_service",
+      "resource_id": "account_005",
+      "category": "USER_PROFILE",
+      "state": "ABSENT",
+      "table": "customer_profiles_primary",
+      "observed_at": "2026-09-02T23:00:00Z",
+      "evidence_id": "evidence_54",
+      "record": null
+    }
+  ],
+  "activity_claims": [
+    {
+      "activity_id": "activity_3482",
+      "event_time": "2026-08-28T09:11:01Z",
+      "event_type": "DELETE_RECORD",
+      "source_system": "deletion_worker",
+      "target_system": "account_service",
+      "resource_id": "account_005",
+      "reported_result": "SUCCESS",
+      "details": "Deletion worker reported the requested operation as completed. Target resource: account_005."
+    },
+    {
+      "activity_id": "activity_3483",
+      "event_time": "2026-08-28T09:11:09Z",
+      "event_type": "SYNC_RECORD",
+      "source_system": "account_service",
+      "target_system": "account_failover_replica",
+      "resource_id": "account_005",
+      "reported_result": "SUCCESS",
+      "details": "Replication worker reported its final checkpoint. Target resource: account_005."
+    }
+  ],
+  "trace": [
+    {
+      "tool": "resolve_identity",
+      "arguments": {},
+      "result": {
+        "user_id": "user_05",
+        "aliases": [
+          {
+            "field": "user_id",
+            "value": "user_05",
+            "source": "user_identities.csv",
+            "available_at": "2026-02-14T17:33:00Z"
+          },
+          {
+            "field": "email",
+            "value": "leila.haddad@yahoo.com",
+            "source": "user_identities.csv",
+            "available_at": "2026-02-14T17:33:00Z"
+          },
+          {
+            "field": "phone",
+            "value": "+212 6 48 27 15 93",
+            "source": "user_identities.csv",
+            "available_at": "2026-02-14T17:33:00Z"
+          },
+          {
+            "field": "email_hash",
+            "value": "62667ed065b846a842474f916da51b658edb0f9754ab2da6bf38e68779ff0d08",
+            "source": "user_identities.csv",
+            "available_at": "2026-02-14T17:33:00Z"
+          }
+        ]
+      },
+      "accepted": true
+    },
+    {
+      "tool": "search_evidence",
+      "arguments": {},
+      "result": {
+        "candidates": [
+          {
+            "file_id": "evidence_54",
+            "file_path": "evidence/databases/customer_accounts_failover_replica_20260902.sql",
+            "origin": "customer_account_failover_replica_capture",
+            "captured_at": "2026-09-02T23:00:00Z"
+          }
+        ],
+        "deferred_sources": [
+          "evidence_09",
+          "evidence_14",
+          "evidence_18",
+          "evidence_19",
+          "evidence_23",
+          "evidence_27",
+          "evidence_28",
+          "evidence_32",
+          "evidence_37",
+          "evidence_42",
+          "evidence_46",
+          "evidence_55"
+        ]
+      },
+      "accepted": true
+    },
+    {
+      "tool": "inspect_profile_snapshot",
+      "arguments": {
+        "evidence_id": "evidence_54"
+      },
+      "result": {
+        "observations": [
+          {
+            "system_id": "account_service",
+            "resource_id": "account_005",
+            "category": "USER_PROFILE",
+            "state": "PRESENT",
+            "table": "customer_profiles_failover_replica",
+            "observed_at": "2026-09-02T23:00:00Z",
+            "evidence_id": "evidence_54",
+            "record": {
+              "resource_id": "account_005",
+              "user_id": "user_05",
+              "full_name": "Leila Haddad",
+              "email": "leila.haddad@yahoo.com",
+              "phone": "+212 6 48 27 15 93",
+              "account_status": "ACTIVE",
+              "updated_at": "2026-09-02T22:45:00Z"
+            }
+          },
+          {
+            "system_id": "account_service",
+            "resource_id": "account_005",
+            "category": "USER_PROFILE",
+            "state": "ABSENT",
+            "table": "customer_profiles_primary",
+            "observed_at": "2026-09-02T23:00:00Z",
+            "evidence_id": "evidence_54",
+            "record": null
+          }
+        ],
+        "policy_rules": [
+          {
+            "rule_id": "rule_01",
+            "data_category": "USER_PROFILE",
+            "condition": "Always",
+            "required_action": "DELETE"
+          },
+          {
+            "rule_id": "rule_02",
+            "data_category": "SECONDARY_IDENTIFIER",
+            "condition": "Always",
+            "required_action": "DELETE"
+          },
+          {
+            "rule_id": "rule_03",
+            "data_category": "SEARCH_INDEX_ENTRY",
+            "condition": "Always",
+            "required_action": "DELETE"
+          },
+          {
+            "rule_id": "rule_04",
+            "data_category": "CACHE_ENTRY",
+            "condition": "Always",
+            "required_action": "DELETE"
+          },
+          {
+            "rule_id": "rule_05",
+            "data_category": "SUPPORT_MESSAGE",
+            "condition": "Conversation contains shared customer, agent, or order context that must be retained",
+            "required_action": "REDACT"
+          },
+          {
+            "rule_id": "rule_06",
+            "data_category": "SUPPORT_ATTACHMENT",
+            "condition": "Attachment belongs only to the deletion subject",
+            "required_action": "DELETE"
+          },
+          {
+            "rule_id": "rule_07",
+            "data_category": "ANALYTICS_PROFILE",
+            "condition": "Record is still attributable to a user",
+            "required_action": "ANONYMIZE"
+          },
+          {
+            "rule_id": "rule_08",
+            "data_category": "PRODUCT_TELEMETRY",
+            "condition": "Record is still attributable to a user",
+            "required_action": "ANONYMIZE"
+          },
+          {
+            "rule_id": "rule_09",
+            "data_category": "USER_EXPORT",
+            "condition": "Always",
+            "required_action": "DELETE"
+          },
+          {
+            "rule_id": "rule_10",
+            "data_category": "MARKETING_PROFILE",
+            "condition": "Always",
+            "required_action": "DELETE"
+          },
+          {
+            "rule_id": "rule_11",
+            "data_category": "EMAIL_DELIVERY_LOG",
+            "condition": "Log contains a user email address",
+            "required_action": "REDACT"
+          },
+          {
+            "rule_id": "rule_12",
+            "data_category": "SECURITY_AUDIT_LOG",
+            "condition": "Record is within the supplied retention period",
+            "required_action": "RETAIN"
+          },
+          {
+            "rule_id": "rule_13",
+            "data_category": "LEGAL_HOLD_RECORD",
+            "condition": "A supplied legal hold is active",
+            "required_action": "RETAIN"
+          },
+          {
+            "rule_id": "rule_14",
+            "data_category": "BACKUP_ARCHIVE",
+            "condition": "Restore access can be blocked",
+            "required_action": "RETAIN"
+          },
+          {
+            "rule_id": "rule_15",
+            "data_category": "ACCOUNT_TOMBSTONE",
+            "condition": "Account is deleted and only a stable internal user_id is needed to preserve references to retained records",
+            "required_action": "REDACT"
+          }
+        ]
+      },
+      "accepted": true
+    },
+    {
+      "tool": "search_evidence",
+      "arguments": {},
+      "result": {
+        "candidates": [
+          {
+            "file_id": "evidence_54",
+            "file_path": "evidence/databases/customer_accounts_failover_replica_20260902.sql",
+            "origin": "customer_account_failover_replica_capture",
+            "captured_at": "2026-09-02T23:00:00Z"
+          }
+        ],
+        "deferred_sources": [
+          "evidence_09",
+          "evidence_14",
+          "evidence_18",
+          "evidence_19",
+          "evidence_23",
+          "evidence_27",
+          "evidence_28",
+          "evidence_32",
+          "evidence_37",
+          "evidence_42",
+          "evidence_46",
+          "evidence_55"
+        ]
+      },
+      "accepted": true
+    },
+    {
+      "tool": "inspect_activity",
+      "arguments": {},
+      "result": {
+        "claims_not_state_proof": [
+          {
+            "activity_id": "activity_3482",
+            "event_time": "2026-08-28T09:11:01Z",
+            "event_type": "DELETE_RECORD",
+            "source_system": "deletion_worker",
+            "target_system": "account_service",
+            "resource_id": "account_005",
+            "reported_result": "SUCCESS",
+            "details": "Deletion worker reported the requested operation as completed. Target resource: account_005."
+          },
+          {
+            "activity_id": "activity_3483",
+            "event_time": "2026-08-28T09:11:09Z",
+            "event_type": "SYNC_RECORD",
+            "source_system": "account_service",
+            "target_system": "account_failover_replica",
+            "resource_id": "account_005",
+            "reported_result": "SUCCESS",
+            "details": "Replication worker reported its final checkpoint. Target resource: account_005."
+          }
+        ],
+        "note": "A past SYNC_RECORD success does not establish an active data flow."
+      },
+      "accepted": true
+    },
+    {
+      "tool": "propose_decision",
+      "arguments": {
+        "authorized": true,
+        "deletion_status": "INCOMPLETE",
+        "request_quote": "Please remove any remaining copy of my profile.",
+        "resources": [
+          {
+            "evidence_id": "evidence_54",
+            "required_action": "DELETE",
+            "resource_id": "account_005",
+            "state": "PRESENT",
+            "system_id": "account_service"
+          }
+        ]
+      },
+      "result": {
+        "case_id": "case_05",
+        "deletion_status": "INCOMPLETE",
+        "steps_json": [
+          {
+            "step_no": 1,
+            "phase": "FINDING",
+            "system_id": "account_service",
+            "resource_id": "account_005",
+            "operation": "REPORT_REMAINING_RECORD",
+            "state": "PRESENT",
+            "evidence_id": "evidence_54"
+          },
+          {
+            "step_no": 2,
+            "phase": "REMEDIATION",
+            "system_id": "account_service",
+            "resource_id": "account_005",
+            "operation": "DELETE_RECORD",
+            "state": "ABSENT",
+            "evidence_id": ""
+          },
+          {
+            "step_no": 3,
+            "phase": "VERIFICATION",
+            "system_id": "account_service",
+            "resource_id": "account_005",
+            "operation": "VERIFY_RECORD_ABSENT",
+            "state": "ABSENT",
+            "evidence_id": ""
+          }
+        ]
+      },
+      "accepted": true
+    }
+  ],
+  "output": {
+    "case_id": "case_05",
+    "deletion_status": "INCOMPLETE",
+    "steps_json": [
+      {
+        "step_no": 1,
+        "phase": "FINDING",
+        "system_id": "account_service",
+        "resource_id": "account_005",
+        "operation": "REPORT_REMAINING_RECORD",
+        "state": "PRESENT",
+        "evidence_id": "evidence_54"
+      },
+      {
+        "step_no": 2,
+        "phase": "REMEDIATION",
+        "system_id": "account_service",
+        "resource_id": "account_005",
+        "operation": "DELETE_RECORD",
+        "state": "ABSENT",
+        "evidence_id": ""
+      },
+      {
+        "step_no": 3,
+        "phase": "VERIFICATION",
+        "system_id": "account_service",
+        "resource_id": "account_005",
+        "operation": "VERIFY_RECORD_ABSENT",
+        "state": "ABSENT",
+        "evidence_id": ""
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "invalid_proposal_probe": {
+    "actor": "deterministic_review_probe_NOT_model",
+    "proposal": {
+      "authorized": true,
+      "deletion_status": "COMPLETE",
+      "request_quote": "Please remove any remaining copy of my profile.",
+      "resources": [
+        {
+          "evidence_id": "evidence_54",
+          "required_action": "DELETE",
+          "resource_id": "account_005",
+          "state": "PRESENT",
+          "system_id": "account_service"
+        }
+      ]
+    },
+    "rejected": true,
+    "reason": "Proposed status conflicts with evidence: required INCOMPLETE"
+  },
+  "exact_sample_match": true
+}

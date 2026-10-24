@@ -1,0 +1,2 @@
+case_id,email,requested_at,reported_status,reported_at,audit_at,request_text
+custom_non_deletion,old@example.test,2026-01-01T00:00:00Z,COMPLETE,2026-01-01T00:00:00Z,2026-02-03T00:00:00Z,Please send me a portable copy of my records. Do not delete my account or change my information.

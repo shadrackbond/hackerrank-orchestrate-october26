@@ -1,0 +1,60 @@
+{
+  "request": {
+    "case_id": "custom_non_deletion",
+    "email": "old@example.test",
+    "requested_at": "2026-01-01T00:00:00Z",
+    "reported_status": "COMPLETE",
+    "reported_at": "2026-01-01T00:00:00Z",
+    "audit_at": "2026-02-03T00:00:00Z",
+    "request_text": "Please send me a portable copy of my records. Do not delete my account or change my information."
+  },
+  "identity": null,
+  "limits": {
+    "tool_calls": 4,
+    "proposal_attempts": 2,
+    "tool_seconds": 10,
+    "case_seconds": 120
+  },
+  "tool_calls": 1,
+  "proposal_attempts": 1,
+  "internal_state": "SUPPORTED_SCOPE_RESOLVED",
+  "halt_reason": null,
+  "global_coverage": "SUPPORTED_ADAPTERS_ONLY",
+  "scope": "SQL customer profile primary/replica snapshots; other adapters deferred",
+  "ledger": {
+    "identifiers_searched": [],
+    "eligible_sources_inspected": [],
+    "discovered_resources": [],
+    "discovered_processes": [],
+    "unresolved_contradictions": [],
+    "remaining_gaps": [],
+    "deferred_sources": [],
+    "candidates": [],
+    "activity_inspected": false,
+    "inspection_not_authorized": true
+  },
+  "observations": [],
+  "activity_claims": [],
+  "trace": [
+    {
+      "tool": "propose_decision",
+      "arguments": {
+        "authorized": false,
+        "deletion_status": "NOT_APPLICABLE",
+        "request_quote": "Please send me a portable copy of my records. Do not delete my account or change my information.",
+        "resources": []
+      },
+      "result": {
+        "case_id": "custom_non_deletion",
+        "deletion_status": "NOT_APPLICABLE",
+        "steps_json": []
+      },
+      "accepted": true
+    }
+  ],
+  "output": {
+    "case_id": "custom_non_deletion",
+    "deletion_status": "NOT_APPLICABLE",
+    "steps_json": []
+  }
+}

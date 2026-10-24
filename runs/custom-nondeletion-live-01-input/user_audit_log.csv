@@ -1,0 +1,2 @@
+audit_id,user_id,event_time,field_name,old_value,new_value
+audit_alias,user_target,2026-01-01T00:00:00Z,email,old@example.test,new@example.test

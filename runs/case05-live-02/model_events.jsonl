@@ -1,0 +1,7 @@
+{"type":"thread.started","thread_id":"01a16f87-5a5d-7a62-b4d4-4bbdfa01c0d8"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"I’ll use the ghost-audit evidence to check for remaining profile copies and determine what treatment is required."}}
+{"type":"item.started","item":{"id":"item_1","type":"mcp_tool_call","server":"ghost","tool":"resolve_identity","arguments":{},"result":null,"error":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_1","type":"mcp_tool_call","server":"ghost","tool":"resolve_identity","arguments":{},"result":null,"error":{"message":"MCP tool call requires approval, but approval policy is never"},"status":"failed"}}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"The request authorizes deletion: “Please remove any remaining copy of my profile.”\n\nThe ghost-audit identity lookup was blocked because tool approval is required but the approval policy is set to “never.” No evidence was retrieved or proposal accepted. Remaining copies and the reported COMPLETE status are unresolved."}}
+{"type":"turn.completed","usage":{"input_tokens":63232,"cached_input_tokens":55168,"cache_write_input_tokens":0,"output_tokens":219,"reasoning_output_tokens":15}}
