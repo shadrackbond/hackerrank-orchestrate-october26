@@ -227,8 +227,11 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(session.call("inspect_activity", {})["claims_not_state_proof"], [])
 
     def test_sql_cannot_attach_external_database(self):
-        session = self.prepare()
-        session.index.contents["proof_early"] += "\nATTACH DATABASE '/tmp/forbidden.db' AS outside;"
+        request = fixture(self.root)
+        with (self.root / "evidence/proof_early.sql").open("a") as stream:
+            stream.write("\nATTACH DATABASE '/tmp/forbidden.db' AS outside;")
+        session = Investigation(EvidenceIndex(self.root), request)
+        session.call("resolve_identity", {})
         with self.assertRaisesRegex(Rejected, "not authorized"):
             session.call("inspect_profile_snapshot", {"evidence_id": "proof_early"})
 

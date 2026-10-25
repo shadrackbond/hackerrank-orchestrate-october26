@@ -42,10 +42,12 @@ class ExtractionTests(unittest.TestCase):
             initial = session.call("resolve_identity", {})
             self.assertIn("image_custom", [m["file_id"] for m in initial["candidates"]])
             visual = session.call("inspect_visual_evidence", {"evidence_id": "image_custom"})
-            self.assertEqual(visual["observations"][0]["source_location"],
+            self.assertEqual(visual["observations"], [])
+            transcription = visual["transcription_not_policy_proof"]
+            self.assertEqual(transcription[0]["source_location"],
                              "evidence/custom.png#image=1,region=top-left")
-            self.assertEqual(visual["observations"][0]["observation_at"], CAPTURE)
-            self.assertIn("Visual state adapter required: image_custom", session.ledger["remaining_gaps"])
+            self.assertEqual(transcription[0]["observation_at"], CAPTURE)
+            self.assertIn("Visual resource assessment unresolved: image_custom", session.ledger["remaining_gaps"])
 
     def test_pdf_cache_key_ignores_image_model_but_image_key_does_not(self):
         a = source_cache_path("/tmp/cache", b"content", ".pdf", "model-one")

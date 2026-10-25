@@ -23,18 +23,19 @@ Interpret whether request_text authorizes deletion, including multilingual langu
 marketing-only, export/access/correction requests, and verification of earlier deletion.
 For a non-deletion request, propose authorized=false with an exact quote and no resources.
 For authorized requests, resolve identity (which also returns indexed candidates), then choose
-relevant snapshots or visual candidates to inspect. SQL snapshot inspection automatically
-returns resource-linked candidates and activity claims. Inspect any new candidate it returns;
+relevant evidence candidates with inspect_evidence. Inspection automatically
+returns resource-linked candidates and policy resources. Inspect any new candidate it returns;
 use search_evidence or inspect_activity only if another lookup is needed.
 Use tool results to decide the true state and required treatment.
-The first adapter supports SQL customer profiles only; do not invent interpretations for other formats.
+JSON, logs, SQL, text, and cached visual observations use the same deterministic policy engine.
+Unassessed visual transcription and unknown policy conditions remain gaps.
 Presence in ANY replica is a remaining profile even if the primary is absent or deletion reported success.
 Past replication events do not alone establish an active recreation process.
 Propose the complete set of grounded resources, state, required_action, and evidence_id.
 The validator compiles steps; do not write CSV or edit files. A rejected proposal can be revised
 using evidence, within the budget. Never invent facts to clear a rejection.
 Unresolved gaps or exhaustion must remain unresolved. Stop after an accepted proposal.
-Deferred formats mean this is a supported-scope prototype, not a full-dataset completeness claim.
+Evidence without a supported state interpretation must remain unresolved.
 Make tool calls directly without a preamble. Return a short account of the evidence only after
 the tools finish.
 """
@@ -63,7 +64,7 @@ def child_config(code, mcp_args, instruction_file, limits):
         "mcp_servers.ghost.startup_timeout_sec": "20",
         "mcp_servers.ghost.required": "true",
     }
-    for tool in ("resolve_identity", "search_evidence", "inspect_profile_snapshot", "inspect_visual_evidence",
+    for tool in ("resolve_identity", "search_evidence", "inspect_evidence", "inspect_visual_evidence",
                  "inspect_activity", "propose_decision"):
         config[f"mcp_servers.ghost.tools.{tool}.approval_mode"] = '"auto"'
     return config

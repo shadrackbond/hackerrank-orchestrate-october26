@@ -12,7 +12,7 @@ import sqlite3
 from collections import defaultdict
 from pathlib import Path
 
-from .core import EvidenceIndex, Rejected, eligible, timestamp
+from .core import EvidenceIndex, Rejected, eligible, timestamp, tokens
 
 
 CATEGORIES = {
@@ -27,7 +27,7 @@ CATEGORIES = {
     "connectors": "DATA_FLOW", "backup_catalog": "BACKUP_ARCHIVE",
     "backup_restore_entries": "BACKUP_ARCHIVE", "restore_entries": "BACKUP_ARCHIVE",
     "security_audit_events": "SECURITY_AUDIT_LOG", "security_audit_records": "SECURITY_AUDIT_LOG",
-    "audit_records": "SECURITY_AUDIT_LOG", "retained_order_records": "LEGAL_HOLD_RECORD",
+    "audit_records": "SECURITY_AUDIT_LOG",
     "deleted_customer_references": "ACCOUNT_TOMBSTONE",
 }
 TABLE_SYSTEM = {
@@ -39,7 +39,7 @@ TABLE_SYSTEM = {
 DIRECT_KEYS = {"user_id", "customer_reference", "subject_reference"}
 IDENTIFIER_KEYS = {"email", "customer_email", "owner_email", "requester_email", "phone",
                    "owner_phone", "requester_phone", "email_hash", "lookup_key", "match_key",
-                   "subject_key", "correlation_key", "lookup_value"}
+                   "subject_key", "subject_ref", "correlation_key", "lookup_value", "query"}
 
 
 def _record_state(row, category):
@@ -58,16 +58,22 @@ def _record_state(row, category):
     if category == "SEARCH_INDEX_ENTRY" and row.get("hits", {}).get("total") == 0:
         return "ABSENT"
     if category == "DATA_FLOW":
+        if "enabled" not in row: return "UNKNOWN"
         return "ACTIVE" if row.get("enabled") in {True, 1, "true", "1"} else "DISABLED"
     if category == "BACKUP_ARCHIVE":
         if "eligible" in row or "deletion_block" in row:
             return "ACTIVE" if row.get("eligible") in {True, 1, "true", "1"} and \
                 row.get("deletion_block") in {False, 0, "false", "0"} else "BLOCKED"
+        if "restore_allowed" not in row: return "UNKNOWN"
         return "ACTIVE" if row.get("restore_allowed") in {True, 1, "true", "1"} else "BLOCKED"
+    if category == "ANALYTICS_PROFILE" and not any(k in row for k in
+            ("user_id", "customer_reference", "email", "phone", "email_hash")):
+        return "UNKNOWN"
     if category == "ANALYTICS_PROFILE" and not any(row.get(k) for k in
         ("user_id", "customer_reference", "email", "phone", "email_hash")):
         return "ANONYMIZED"
-    if category == "SUPPORT_MESSAGE" and (row.get("message_excerpt") or row.get("message_text")) \
+    if category == "SUPPORT_MESSAGE" and all(k in row for k in
+            ("requester_name", "requester_email", "requester_phone")) and (row.get("message_excerpt") or row.get("message_text")) \
             and not any(row.get(k) for k in ("requester_name", "requester_email", "requester_phone")):
         return "REDACTED"
     if category == "ACCOUNT_TOMBSTONE" and not any(row.get(k) for k in
@@ -83,8 +89,30 @@ def _obs(meta, location, scope, system, category, record, observed=None, state=N
     return {"evidence_id": meta["file_id"], "capture_at": meta["captured_at"],
             "observed_at": at, "source_location": meta["file_path"] + "#" + location,
             "scope": scope, "system_id": system, "category": category,
-            "resource_id": str(record.get("resource_id", "")), "state": state or _record_state(record, category),
+            "source_origin": meta.get("origin", ""),
+            "resource_id": str(record.get("resource_id") or ""), "state": state or _record_state(record, category),
             "record": record}
+
+
+def legal_hold_semantics(record):
+    """Dates and order/dispute references alone do not establish a legal hold."""
+    return (record.get("record_type") == "LEGAL_HOLD_RECORD"
+            or record.get("data_category") == "LEGAL_HOLD_RECORD"
+            or isinstance(record.get("legal_hold_active"), bool)
+            or str(record.get("hold_type", "")).casefold() == "legal")
+
+
+def _context(meta, location, record, observed=None):
+    return {"evidence_role": "CONTEXT", "evidence_id": meta["file_id"],
+            "capture_at": meta["captured_at"], "observed_at": observed or meta["captured_at"],
+            "source_location": meta["file_path"] + "#" + location,
+            "source_origin": meta.get("origin", ""), "record": record}
+
+
+def _category(collection, record):
+    if collection == "retained_order_records":
+        return "LEGAL_HOLD_RECORD" if legal_hold_semantics(record) else None
+    return record.get("record_type") or CATEGORIES.get(collection)
 
 
 def _json_rows(obj, meta):
@@ -107,12 +135,22 @@ def _json_rows(obj, meta):
         scopes.add((scope, system, collection, at))
         for n, row in enumerate(records):
             system_id = row.get("system", system)
-            category = row.get("record_type") or CATEGORIES.get(collection)
-            if not category:
-                continue
+            category = _category(collection, row)
             observed = row.get("observed_at", row.get("recorded_at", at))
             if not eligible(observed, meta["captured_at"]):
                 continue
+            if not category:
+                if collection == "retained_order_records":
+                    out.append(_context(meta, f"{location}/{n}", row, observed))
+                continue
+            identity_basis = "explicit resource system or source label"
+            # This collection has the same owner/file schema under export_service
+            # in supplied service snapshots. Source/exporter names are provenance.
+            if collection == "customer_export_jobs" and category == "USER_EXPORT" and \
+                    {"owner_email", "file_name", "created_at", "expires_at", "download_available"} <= row.keys() and \
+                    "system" not in row and "snapshots" not in obj and "service_exports" not in obj:
+                system_id = "export_service"
+                identity_basis = "customer_export_jobs owner/file/download schema"
             if isinstance(row.get("profile"), dict):
                 row = {**row, **row["profile"]}
             if category == "SEARCH_INDEX_ENTRY" and isinstance(row.get("hits"), dict):
@@ -125,6 +163,11 @@ def _json_rows(obj, meta):
                                     row, observed, "ABSENT"))
             else:
                 out.append(_obs(meta, f"{location}/{n}", scope, system_id, category, row, observed))
+            for observation in out:
+                if observation.get("source_location", "").startswith(meta["file_path"] + f"#{location}/{n}"):
+                    observation["document_source"] = obj.get("source", obj.get("origin", ""))
+                    observation["source_system_label"] = system
+                    observation["system_identity_basis"] = identity_basis
     return out, scopes
 
 
@@ -141,7 +184,7 @@ def _handover_rows(text, meta):
     return out, set()
 
 
-def _sql_rows(text, meta):
+def _sql_rows(text, meta, inventories=None):
     marker = re.search(r"-- Captured at: (\S+)", text)
     if marker and marker[1] != meta["captured_at"]:
         raise Rejected("Inconsistent SQL snapshot capture")
@@ -165,24 +208,38 @@ def _sql_rows(text, meta):
         for table in tables:
             if table == "snapshot_scope":
                 continue
-            records = [dict(r) for r in db.execute('SELECT * FROM "' + table + '"')]
+            records = [dict(r) for r in db.execute('SELECT * FROM "' + table.replace('"', '""') + '"')]
             if table.startswith("customer_data_"):
+                if inventories is not None:
+                    inventories.append({"evidence_id": meta["file_id"], "system_id": "*", "category": "*",
+                        "table": table, "captured_at": meta["captured_at"], "meta": meta,
+                        "resources": {(r["origin_system"], r["resource_id"]) for r in records}})
                 for n, row in enumerate(records):
                     record = json.loads(row["record_json"])
-                    category = CATEGORIES.get(row["collection_name"])
+                    category = _category(row["collection_name"], record)
                     if category:
                         scope = f"{meta['file_id']}:{table}:{row['origin_system']}:{row['collection_name']}"
                         scopes.add((scope, row["origin_system"], row["collection_name"], meta["captured_at"]))
                         out.append(_obs(meta, f"table={table},row={n}", scope, row["origin_system"],
                                         category, record, meta["captured_at"]))
+                    elif row["collection_name"] == "retained_order_records":
+                        out.append(_context(meta, f"table={table},row={n}", record))
                 continue
             base = re.sub(r"_(primary|regional_replica|reporting_replica|failover_replica|read_replica)$", "", table)
-            system = TABLE_SYSTEM.get(base, "search_service" if base == "search_documents" else "account_service")
-            category = CATEGORIES.get(base, "SEARCH_INDEX_ENTRY" if base == "search_documents" else "USER_PROFILE")
+            if base not in TABLE_SYSTEM and base != "search_documents":
+                raise Rejected("Unsupported SQL table schema: " + table)
+            system = TABLE_SYSTEM.get(base, "search_service")
+            category = CATEGORIES.get(base, "SEARCH_INDEX_ENTRY")
             at = scope_times.get(system, meta["captured_at"])
             scope = f"{meta['file_id']}:{table}"
             scopes.add((scope, system, base, at))
+            if inventories is not None:
+                inventories.append({"evidence_id": meta["file_id"], "system_id": system, "category": category,
+                    "table": table, "captured_at": at, "meta": meta,
+                    "resources": {(system, r["resource_id"]) for r in records}})
             for n, row in enumerate(records):
+                if row.get("updated_at") and not eligible(row["updated_at"], at):
+                    raise Rejected("Row update is later than snapshot capture")
                 out.append(_obs(meta, f"table={table},row={n}", scope, system, category, row, at))
         return out, scopes
     except (sqlite3.Error, json.JSONDecodeError) as exc:
@@ -220,7 +277,9 @@ def _log_rows(text, meta):
         if not payload.get("service"):
             found = re.search(r"\b(?:service|function)=([\w_]+)", line)
             if found: payload["service"] = found[1]
-        traces[trace].append((n, match[1], payload, line))
+        payload = {key: None if isinstance(value, str) and value in {"null", "None", "NULL"} else value
+                   for key, value in payload.items()}
+        traces[trace or f"line-{n}"].append((n, match[1], payload, line))
     for trace, lines in traces.items():
         for n, at, row, line in lines:
             event = row.get("event", "")
@@ -234,6 +293,14 @@ def _log_rows(text, meta):
                      IDENTIFIER_KEYS | {"subject_ref", "customer_reference"}
                      and v not in {"null", "None"}}
             joined = {**links, **row}
+            link_values = defaultdict(set)
+            for _, link_at, payload, _ in lines:
+                if eligible(link_at, at):
+                    for key in IDENTIFIER_KEYS:
+                        if payload.get(key) not in {None, "null", "None"}:
+                            link_values[key].add(str(payload[key]).casefold())
+            if any(len(values) > 1 for values in link_values.values()):
+                joined["_ambiguous_identity_trace"] = True
             system = row.get("system", row.get("service", ""))
             category = row.get("record_type") or {
                 "account_service": "USER_PROFILE", "profile_service": "USER_PROFILE",
@@ -261,34 +328,52 @@ def _visual_rows(index, meta):
     segments = index.visual_observations.get(meta["file_id"], [])
     text = "\n".join(s["text"] for s in segments)
     if not text: return [], set()
-    if "legal_retention_register" in meta["file_path"]:
+    # A signed journal extract supplies a record-specific retention requirement.
+    # Label structure, not a filename or an identifier prefix, selects this adapter.
+    refs = re.findall(r"\bEvent reference\s+(\S+)", text, re.I)
+    subjects = re.findall(r"\bsubject reference\s+(\S+)", text, re.I)
+    date_pattern = r"(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s+(\d{2})[\s:]+(\d{2})\s+UTC"
+    recorded = re.search(r"^recorded\s+" + date_pattern, text, re.I | re.M)
+    until = re.search(r"^retain until\s+" + date_pattern, text, re.I | re.M)
+    if len(refs) == len(subjects) == 1 and recorded and until and \
+            "journal entry" in text.casefold() and re.search(r"integrity seal\s+valid\b", text, re.I):
+        from datetime import datetime, timezone
+        def date_value(match):
+            day, month, year, hour, minute = match.groups()
+            return datetime.strptime(f"{day} {month} {year} {hour}:{minute}", "%d %b %Y %H:%M").replace(
+                tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+        record = {"resource_id": refs[0], "subject_reference": subjects[0],
+                  "event_recorded_at": date_value(recorded), "retention_until": date_value(until)}
+        locations = [s["source_location"].split("#", 1)[-1] for s in segments
+                     if re.search(r"Event reference|subject reference|^recorded|^retain until", s["text"], re.I)]
+        return [_obs(meta, "retention-extract:" + ";".join(locations),
+                     f"{meta['file_id']}:journal-extract", "security_service", "SECURITY_AUDIT_LOG", record)], set()
+    if "disputed order entries" in text.casefold() or "tax records register" in text.casefold():
         out = []
-        for n, segment in enumerate(segments):
-            match = re.search(r"(ORD-\d+)\s*\|\s*(user_\d+)\s*\|.*?Retain until\s+(\d\d?\s+\w+\s+\d{4})",
-                              segment["text"])
+        for segment in segments:
+            match = re.search(r"^\d+\s+(\S+)\s*\|\s*(\S+)\s*\|\s*([^|]+)\|.*?Retain until\s+([^|]+)",
+                              segment["text"], re.I)
             if not match: continue
-            from datetime import datetime, timezone
-            until = datetime.strptime(match[3], "%d %B %Y").replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
-            record = {"resource_id": match[1], "subject_reference": match[2],
-                      "retained_until": until, "retention_reason": "disputed order or tax record"}
-            out.append(_obs(meta, segment["source_location"].split("#")[-1],
-                            f"{meta['file_id']}:legal-register", "legal_service", "LEGAL_HOLD_RECORD", record))
+            record = {"order_reference": match[1], "subject_reference": match[2],
+                      "financial_retain_until_text": match[4].strip(),
+                      "reason_text": match[3].strip(), "excerpt": segment["text"]}
+            out.append(_context(meta, segment["source_location"].split("#")[-1], record))
         return out, set()
     # OCR is often noisy. A missing explicit status stays an investigation gap.
     system, category = None, None
-    lower = meta["file_path"].lower()
+    lower = text.casefold()
     for word, pair in {
-        "account_admin": ("account_service", "USER_PROFILE"),
-        "search_index": ("search_service", "SEARCH_INDEX_ENTRY"),
-        "connector_management": ("integration_service", "DATA_FLOW"),
-        "analytics_profile": ("analytics_platform", "ANALYTICS_PROFILE"),
-        "customer_export": ("export_service", "USER_EXPORT"),
-        "support_ticket": ("support_platform", "SUPPORT_MESSAGE"),
-        "backup_restore": ("backup_service", "BACKUP_ARCHIVE"),
-        "security_audit": ("security_service", "SECURITY_AUDIT_LOG"),
-        "deleted_account": ("account_service", "ACCOUNT_TOMBSTONE"),
-        "object_storage": ("support_platform", "SUPPORT_ATTACHMENT"),
-        "marketing_profile": ("marketing_service", "MARKETING_PROFILE"),
+        "customer details": ("account_service", "USER_PROFILE"),
+        "raw document": ("search_service", "SEARCH_INDEX_ENTRY"),
+        "search connectors": ("integration_service", "DATA_FLOW"),
+        "profile attributes": ("analytics_platform", "ANALYTICS_PROFILE"),
+        "data exports": ("export_service", "USER_EXPORT"),
+        "conversation": ("support_platform", "SUPPORT_MESSAGE"),
+        "recovery manager": ("backup_service", "BACKUP_ARCHIVE"),
+        "raw event": ("security_service", "SECURITY_AUDIT_LOG"),
+        "retained reference": ("identity_service", "ACCOUNT_TOMBSTONE"),
+        "content type": ("object_storage", "SUPPORT_ATTACHMENT"),
+        "audience operations": ("marketing_platform", "MARKETING_PROFILE"),
     }.items():
         if word in lower: system, category = pair; break
     if not system: return [], set()
@@ -311,21 +396,34 @@ def _visual_rows(index, meta):
 
 
 class PublicIndex(EvidenceIndex):
-    def __init__(self, dataset, visual_cache):
-        super().__init__(dataset, visual_cache, "local-ocr")
-        self.observations, self.scopes, self.adapter_gaps = [], set(), []
+    def __init__(self, dataset, visual_cache=None, image_model="local-ocr"):
+        super().__init__(dataset, visual_cache, image_model)
+        self._normalize()
+
+    @classmethod
+    def from_index(cls, index):
+        if isinstance(index, cls): return index
+        result = cls.__new__(cls)
+        result.__dict__ = dict(index.__dict__)
+        result._normalize()
+        return result
+
+    def _normalize(self):
+        self.observations, self.scopes, self.adapter_gaps, self.inventories = [], set(), [], []
+        self.contexts = []
         for fid, meta in sorted(self.manifest.items()):
             suffix = Path(meta["file_path"]).suffix.lower()
             try:
                 if suffix == ".json": found, scopes = _json_rows(json.loads(self.contents[fid]), meta)
-                elif suffix == ".sql": found, scopes = _sql_rows(self.contents[fid], meta)
+                elif suffix == ".sql": found, scopes = _sql_rows(self.contents[fid], meta, self.inventories)
                 elif suffix == ".log": found, scopes = _log_rows(self.contents[fid], meta)
                 elif suffix == ".txt": found, scopes = _handover_rows(self.contents[fid], meta)
                 elif suffix in {".png", ".pdf"}: found, scopes = _visual_rows(self, meta)
                 else:
                     self.adapter_gaps.append(f"Unsupported format: {fid}:{suffix}")
                     continue
-                self.observations.extend(found)
+                self.observations.extend(o for o in found if o.get("evidence_role") != "CONTEXT")
+                self.contexts.extend(o for o in found if o.get("evidence_role") == "CONTEXT")
                 self.scopes.update(scopes)
                 if suffix in {".png", ".pdf"} and not found:
                     self.adapter_gaps.append("Visual assessment unresolved: " + fid)
@@ -336,25 +434,86 @@ class PublicIndex(EvidenceIndex):
             if obs["resource_id"]: self.by_resource[obs["resource_id"]].append(obs)
 
 
-def linked(record, identity):
-    """A conflicting stable reference vetoes a coincidental alias match."""
-    uid = identity["user_id"]
-    aliases = {(a["field"], a["value"].casefold()) for a in identity["aliases"]}
-    direct = []
-    for key in DIRECT_KEYS:
-        value = record.get(key)
-        if value and str(value).startswith("user_"): direct.append(str(value))
-    if direct:
-        return all(value == uid for value in direct)
+def identity_conflict(record, identity):
+    # Stable references in lookup/correlation fields are typed by their values.
+    if record.get("_ambiguous_identity_trace"): return True
     for key, value in record.items():
-        if value is None or isinstance(value, (dict, list)): continue
-        field = "email_hash" if "hash" in key or re.fullmatch(r"[0-9a-fA-F]{64}", str(value)) else "phone" if "phone" in key else \
-            "email" if "email" in key or key in IDENTIFIER_KEYS or key == "subject_reference" and "@" in str(value) else None
-        if field and (field, str(value).casefold()) in aliases: return True
-    for key in ("document", "profile", "subject_selector"):
-        nested = record.get(key)
-        if isinstance(nested, dict) and linked(nested, identity): return True
-        if isinstance(nested, str) and nested.casefold() in {value for field, value in aliases
-                                                              if field in {"email", "email_hash", "user_id"}}:
-            return True
+        if isinstance(value, dict) and key in {"document", "profile", "subject_selector"}:
+            if identity_conflict(value, identity): return True
+        if not isinstance(value, str) or value in {"null", "None", "NULL"}: continue
+        if key in {"user_id", "customer_reference"} or key in DIRECT_KEYS | IDENTIFIER_KEYS and value.startswith("user_"):
+            if value and value != identity["user_id"]: return True
     return False
+
+
+def linked(record, identity):
+    """Exact typed aliases, including stable references in generic lookup fields."""
+    if identity_conflict(record, identity): return False
+    aliases = {(a["field"], a["value"].casefold()) for a in identity["aliases"]}
+    for key, value in record.items():
+        if key in {"document", "profile", "subject_selector"} and isinstance(value, dict):
+            if linked(value, identity): return True
+        if not isinstance(value, str) or not value or value in {"null", "None"}: continue
+        if key not in DIRECT_KEYS | IDENTIFIER_KEYS | {"subject_selector"} and not any(
+                field in key for field in ("email", "phone", "hash")): continue
+        if value == identity["user_id"]: return True
+        field = ("email_hash" if "hash" in key or re.fullmatch(r"[0-9a-fA-F]{64}", value)
+                 else "phone" if "phone" in key else "email")
+        if field == "phone":
+            digits = re.sub(r"\D", "", value)
+            if any(f == "phone" and re.sub(r"\D", "", alias) == digits for f, alias in aliases): return True
+        elif (field, value.casefold()) in aliases: return True
+    return False
+
+
+def case_view(index, identity, cutoff):
+    """Ground resource identities before state evaluation; never join neighboring rows."""
+    eligible_obs = [o for o in index.observations
+                    if eligible(o["capture_at"], cutoff) and eligible(o["observed_at"], cutoff)]
+    known = {(o["system_id"], o["resource_id"]): o["category"] for o in eligible_obs
+             if linked(o["record"], identity)}
+    # Follow explicit resource references, with no inference from ID prefixes.
+    # An unknown source system remains a gap rather than an invented account row.
+    pending = list(known)
+    while pending:
+        key = pending.pop()
+        for obs in eligible_obs:
+            if (obs["system_id"], obs["resource_id"]) != key: continue
+            source_id = obs["record"].get("source_resource_id")
+            if not source_id: continue
+            targets = {(o["system_id"], o["resource_id"]): o["category"] for o in eligible_obs
+                       if o["resource_id"] == source_id and not identity_conflict(o["record"], identity)}
+            if len(targets) == 1:
+                for target, category in targets.items():
+                    if target not in known:
+                        known[target] = category
+                        pending.append(target)
+            else:
+                known.setdefault((obs["record"].get("source_system_id", ""), source_id), None)
+    links = []
+    # Explicit catalog identity links ground IDs but do not prove resource state.
+    for event in index.activity:
+        if event["event_type"] != "LINK_RESOURCE_IDENTITY" or not eligible(event["event_time"], cutoff): continue
+        values = tokens(event["details"])
+        if identity["user_id"].casefold() not in values: continue
+        other_refs = {v for v in values if v.startswith("user_") and v != identity["user_id"].casefold()}
+        if other_refs: continue
+        key = event["target_system"], event["resource_id"]
+        categories = {o["category"] for o in eligible_obs if (o["system_id"], o["resource_id"]) == key}
+        known[key] = next(iter(categories)) if len(categories) == 1 else None
+        links.append(event)
+    selected = [o for o in eligible_obs if (o["system_id"], o["resource_id"]) in known
+                and not identity_conflict(o["record"], identity)]
+    aliases = identity["aliases"] + [{"field": "resource_id", "value": rid} for system, rid in known]
+    candidates = set(index.search(aliases, cutoff)) | {o["evidence_id"] for o in selected}
+    # Only a grounded exact ID in a complete SQL table can support scoped absence.
+    for inventory in index.inventories:
+        fid = inventory["evidence_id"]
+        if fid not in candidates or not eligible(inventory["captured_at"], cutoff): continue
+        for (system, rid), category in known.items():
+            if not category or inventory["system_id"] not in {"*", system} or inventory["category"] not in {"*", category}: continue
+            if (system, rid) in inventory["resources"]: continue
+            selected.append(_obs(inventory["meta"], "table=" + inventory["table"] + ",lookup=" + rid,
+                fid + ":" + inventory["table"], system, category, {"resource_id": rid},
+                inventory["captured_at"], "ABSENT"))
+    return selected, sorted(candidates), known, links

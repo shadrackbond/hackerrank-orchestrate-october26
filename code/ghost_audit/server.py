@@ -4,7 +4,8 @@ import json
 import sys
 from pathlib import Path
 
-from .core import EvidenceIndex, Investigation, Limits, Rejected, rows
+from .core import Investigation, Limits, Rejected, rows
+from .public_index import PublicIndex
 
 
 def object_schema(properties):
@@ -20,7 +21,7 @@ TOOLS = [
      "inputSchema": object_schema({})},
     {"name": "search_evidence", "description": "Search indexed participant evidence with validated identifiers. Returns eligible candidates and deferred formats.",
      "inputSchema": object_schema({})},
-    {"name": "inspect_profile_snapshot", "description": "Inspect one eligible SQL profile candidate across replicas. Also return deterministic linked candidates and activity claims for discovered resources.",
+    {"name": "inspect_evidence", "description": "Inspect one eligible identity/resource-linked evidence source using shared JSON, log, SQL, text, and cached visual adapters. Returns observations, deterministic policy resources, linked candidates, and unresolved gaps.",
      "inputSchema": object_schema({"evidence_id": STRING})},
     {"name": "inspect_visual_evidence", "description": "Read cached PDF/page or image/region transcription for an eligible candidate; state still requires a supported adapter.",
      "inputSchema": object_schema({"evidence_id": STRING})},
@@ -47,7 +48,7 @@ def main():
     parser.add_argument("--image-model")
     args = parser.parse_args()
     request = next(r for r in rows(Path(args.dataset) / args.requests) if r["case_id"] == args.case)
-    investigation = Investigation(EvidenceIndex(args.dataset, args.visual_cache, args.image_model), request,
+    investigation = Investigation(PublicIndex(args.dataset, args.visual_cache, args.image_model or "local-ocr"), request,
                                   Limits(**json.loads(args.limits)))
     report_path = Path(args.report)
 

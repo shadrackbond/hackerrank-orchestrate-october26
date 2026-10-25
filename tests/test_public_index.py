@@ -78,7 +78,7 @@ INSERT INTO customer_data_read_replica VALUES('analytics_target','analytics_plat
                                           "required_action": "RETAIN"}],
                  "ACCOUNT_TOMBSTONE": [{"condition": "Account is deleted and only a stable internal user_id is needed to preserve references to retained records",
                                         "required_action": "REDACT"}]}
-        audit = {"category": "SECURITY_AUDIT_LOG", "resource_id": "audit_target",
+        audit = {"system_id": "security_service", "category": "SECURITY_AUDIT_LOG", "resource_id": "audit_target",
                  "record": {"retention_until": "2027-01-01T00:00:00Z"}, "state": "PRESENT"}
         tomb = {"category": "ACCOUNT_TOMBSTONE", "resource_id": "tomb_target",
                 "record": {"subject_reference": "user_target", "email": "old@example.test"}, "state": "PRESENT"}

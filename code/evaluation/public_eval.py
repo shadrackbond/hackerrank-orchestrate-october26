@@ -94,7 +94,10 @@ def evaluate(reference_path, prediction_path, investigations_path):
                           "sequence_exact": seq_ok, "group": group,
                           "earliest_incorrect_fact": earliest})
     count = len(expected_ids)
-    return {"cases_attempted": count, "cases_resolved": len(prediction),
+    return {"evaluation_kind": "DETERMINISTIC_DIAGNOSTIC_NOT_END_TO_END_AGENT_ACCURACY"
+            if all(r.get("execution_kind") == "DETERMINISTIC_DIAGNOSTIC_NOT_LIVE_AGENT" for r in investigations.values())
+            else "SAVED_PREDICTION_COMPARISON",
+            "cases_attempted": count, "cases_resolved": len(prediction),
             "cases_unresolved": count - len(prediction),
             "status_accuracy_all_cases": status_correct / count,
             "whole_case_exact_agreement_all_cases": exact_cases / count,
