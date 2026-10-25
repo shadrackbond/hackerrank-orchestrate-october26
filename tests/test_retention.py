@@ -30,6 +30,38 @@ def observation(record, category="SECURITY_AUDIT_LOG", fid="readback", **extra):
 
 
 class RetentionTests(unittest.TestCase):
+    def test_applicability_states_do_not_supply_an_unstated_fallback(self):
+        active = observation({"retention_until": "2027-01-01T00:00:00Z"})
+        expired = observation({"retention_until": "2026-01-01T00:00:00Z"})
+        unknown = observation({"subject_reference": "opaque_person", "recorded_at": CAPTURE})
+        conflicting = observation({"retention_until": "2026-01-01T00:00:00Z"}, fid="other_source")
+        self.assertEqual(retention_proof(active, AUDIT)["status"], "ACTIVE")
+        self.assertEqual(retention_proof(expired, AUDIT)["status"], "EXPIRED")
+        self.assertEqual(retention_proof(unknown, AUDIT)["status"], "INSUFFICIENT")
+        self.assertEqual(retention_proof(active, AUDIT, [conflicting])["status"], "CONTRADICTORY")
+        self.assertEqual(_policy(RULES, active, AUDIT), ("RETAIN", None))
+        # Missing terms do not establish either mandatory retention or permission to delete.
+        for obs, sources in ((expired, []), (unknown, []), (active, [conflicting])):
+            action, gap = _policy(RULES, obs, AUDIT, sources)
+            self.assertIsNone(action)
+            self.assertIsNotNone(gap)
+        # An ineligible assertion cannot turn uncertainty into applicable retention.
+        late = {**active, "capture_at": "2026-02-04T00:00:00Z"}
+        self.assertEqual(retention_proof(unknown, AUDIT, [late])["status"], "INSUFFICIENT")
+
+    def test_no_applicable_retention_rule_requires_an_independent_treatment(self):
+        profile = observation({"email": "fictional@example.test"}, category="USER_PROFILE")
+        rules = {**RULES, "USER_PROFILE": [{"condition": "Always", "required_action": "DELETE"}]}
+        # Retention for a different category does not apply. DELETE is supported
+        # by the supplied unconditional profile rule, never by lack of retention proof.
+        self.assertEqual(_policy(rules, profile, AUDIT), ("DELETE", None))
+        self.assertIsNone(_policy(RULES, profile, AUDIT)[0])
+        # Merely finding no terms for the security category still leaves applicability unknown.
+        security = observation({"subject_reference": "opaque_person"})
+        self.assertEqual(retention_proof(security, AUDIT)["proof"], [])
+        self.assertEqual(retention_proof(security, AUDIT)["status"], "INSUFFICIENT")
+        self.assertIsNone(_policy(rules, security, AUDIT)[0])
+
     def test_active_explicit_requirement_and_alias_format(self):
         obs = observation({"retained_until": "2027-01-01T00:00:00Z"})
         self.assertEqual(_policy(RULES, obs, AUDIT), ("RETAIN", None))
