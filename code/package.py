@@ -10,7 +10,7 @@ def main():
     parser.add_argument("--output", type=Path, default=root / "code.zip")
     args = parser.parse_args()
     files = [root / name for name in ("README.md", "requirements.txt", "agent_trace_instructions.md",
-        "evaluation/evaluation_report.md", "evaluation/usage_report.md")]
+        "evaluation/evaluation_report.md", "evaluation/usage_report.md", "evaluation/final_validation.json")]
     files += sorted((root / "code").rglob("*.py"))
     files += sorted((root / "tests").glob("test_*.py"))
     for path in files:

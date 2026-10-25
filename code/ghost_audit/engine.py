@@ -3,6 +3,7 @@ from collections import defaultdict
 import re
 from .core import Rejected, eligible, timestamp
 from .public_index import case_view, linked
+from .proof import support_context_proof, state_conflict, treatment_fields_supported
 
 DIRECT_FIELDS = ("full_name", "name", "email", "phone", "email_hash", "requester_name",
                  "requester_email", "requester_phone")
@@ -114,7 +115,7 @@ def _policy(rule_map, obs, cutoff, condition_observations=()):
     if category == "ANALYTICS_PROFILE" or category == "PRODUCT_TELEMETRY":
         return action, None
     if category == "SUPPORT_MESSAGE":
-        return action, None if record.get("shared_context_verified") is True or any(record.get(k) for k in ("message_text", "message_excerpt")) else \
+        return action, None if obs.get("semantic_proof") and record.get("shared_context_verified") is True or support_context_proof(record) else \
             "Shared-context condition unproved: " + obs["resource_id"]
     if category == "SUPPORT_ATTACHMENT":
         return action, None if record.get("subject_only") is True else \
@@ -141,6 +142,7 @@ def _policy(rule_map, obs, cutoff, condition_observations=()):
 
 def _compliant(action, obs):
     state, record = obs["state"], obs["record"]
+    if state_conflict(record, state) or not treatment_fields_supported(record, obs["category"], state): return False
     if action == "DELETE": return state == "ABSENT"
     if action == "DISABLE": return state == "DISABLED"
     if action == "BLOCK": return state == "BLOCKED"
@@ -211,6 +213,8 @@ def assess(index, request, identity, inspected, activity_inspected, semantic_obs
                          else "Identity hit lacks parsed resource observation: ") + fid)
     contradictions, latest = [], {}
     for obs in observations:
+        if state_conflict(obs["record"], obs["record"].get("result")) or state_conflict(obs["record"], obs["state"]):
+            contradictions.append("Claimed treatment conflicts with identifying fields: " + obs["system_id"] + "/" + obs["resource_id"])
         if not obs["resource_id"]:
             gaps.append("Resource identity unproved: " + obs["system_id"] + "/" + obs["category"])
             continue

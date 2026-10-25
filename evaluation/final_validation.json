@@ -1,0 +1,76 @@
+{
+  "validation": "PASS",
+  "rows": 518,
+  "unique_sorted_requested_ids": true,
+  "exact_header": true,
+  "serialized_rows_match_grounding_reports": true,
+  "operation_state_numbering_order_citations_and_cutoffs": "PASS",
+  "prior_accepted_rows_preserved": 186,
+  "previous_accepted_output_changes": 0,
+  "independent_tests": {
+    "passed": 92,
+    "failed": 0
+  },
+  "public_evaluations_of_final_path": 1,
+  "no_grounded_explicit_dependency_relationships": true,
+  "output_sha256": "1760a666b16914f9ebb7c91e196d6576dbafe6a5f7e58bdd5333180866a89fa3",
+  "uncertainty_sha256": "aa45c3aa29d4bde804d994ca0d4861137a1d73f41aa9ff8e3b8a88bb7d070869",
+  "full_run_summary": {
+    "execution_kind": "BEST_EFFORT_CONTEST_NO_MODEL_CALLS",
+    "requests": 518,
+    "status_counts": {
+      "INCOMPLETE": 423,
+      "COMPLETE": 85,
+      "NOT_APPLICABLE": 10
+    },
+    "established_statuses": 429,
+    "inferred_statuses": 89,
+    "scope_certified_plans": 235,
+    "uncertified_plans": 283,
+    "model_calls": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "wall_seconds": 63.25711248500738,
+    "output": "output.csv",
+    "limitations": "Best effort; scoped certification is not exhaustive discovery or hidden accuracy"
+  },
+  "public_metrics": {
+    "evaluation_kind": "SAVED_PREDICTION_COMPARISON",
+    "cases_attempted": 32,
+    "cases_resolved": 32,
+    "cases_unresolved": 0,
+    "status_accuracy_all_cases": 0.84375,
+    "whole_case_exact_agreement_all_cases": 0.03125,
+    "step_precision": 0.9924242424242424,
+    "step_recall": 0.6787564766839378,
+    "field_accuracy": 0.5210954848260547,
+    "exact_sequence_agreement_all_cases": 0.03125,
+    "citation_mismatched_steps": 4,
+    "ordering_mismatched_cases": 0,
+    "counts": {
+      "status_correct": 27,
+      "whole_case_exact": 1,
+      "sequence_exact": 1,
+      "matched_steps": 131,
+      "predicted_steps": 132,
+      "reference_steps": 193,
+      "matched_fields": 704,
+      "reference_fields": 1351
+    }
+  },
+  "limits": "Structural and cited-fact validity does not establish exhaustive plan coverage or hidden correctness.",
+  "clean_archive_verification": {
+    "independent_tests_passed": 92,
+    "failed": 0,
+    "cli_import_help": "PASS",
+    "required_report_paths": "PASS",
+    "current_source_equality": "PASS",
+    "exclusions_and_archive_integrity": "PASS"
+  },
+  "native_trace_snapshot": {
+    "zip_integrity": "PASS",
+    "jsonl_events_validated": 3798,
+    "active_session_included": false,
+    "finalize_after_quit": "python3 code/export_traces.py --after-session-exit"
+  }
+}

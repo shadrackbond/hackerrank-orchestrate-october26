@@ -54,7 +54,7 @@ class SemanticToolTests(unittest.TestCase):
             quotes.extend(quote(u, "TYPE") for u in units if "Conversation record" in u["text"])
         return {"kind": "VISUAL_SUPPORT_RECORD" if visual else "SUPPORT_SHARED_CONTEXT", "evidence_id": "proof_custom",
                 "system_id": "support_platform", "resource_id": "note_custom", "conclusion": "CONFIRMED",
-                "supporting_quotes": quotes, "explanation": "The quoted customer record contains shared order context."}
+                **({"context_type": "SHARED_ORDER"} if not visual else {}), "supporting_quotes": quotes, "explanation": "The quoted customer record contains shared order context."}
 
     def test_cited_context_interpretation_uses_shared_policy_compilation(self):
         with tempfile.TemporaryDirectory() as folder:

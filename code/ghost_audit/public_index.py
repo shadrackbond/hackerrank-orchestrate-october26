@@ -43,6 +43,9 @@ IDENTIFIER_KEYS = {"email", "customer_email", "owner_email", "requester_email", 
 
 
 def _record_state(row, category):
+    from .proof import state_conflict, treatment_fields_supported
+    if state_conflict(row, row.get("result")) or not treatment_fields_supported(row, category, row.get("result")):
+        return "UNKNOWN"
     if row.get("result") in {"ANONYMIZED", "REDACTED", "BLOCKED", "DISABLED", "ACTIVE"}:
         return row["result"]
     if row.get("result") == "IDENTIFIABLE":
@@ -189,7 +192,7 @@ def _handover_rows(text, meta):
         if not match or not eligible(match[1], meta["captured_at"]): continue
         at, system, rid, category, state, subject = match.groups()
         record = {"resource_id": rid, "record_type": category, "result": state,
-                  "subject_reference": subject.strip()}
+                  "subject_selector": subject.strip()}
         out.append(_obs(meta, f"line={number}", f"{meta['file_id']}:handover:{system}",
                         system, category, record, at))
     return out, set()

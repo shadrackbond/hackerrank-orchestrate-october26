@@ -11,6 +11,9 @@ from ghost_audit.runtime import run_codex
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "submit":
+        from ghost_audit.contest import main as contest
+        return contest(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "diagnostic":
         from ghost_audit.delivery import main as diagnostic
         return diagnostic(sys.argv[2:])
@@ -27,6 +30,7 @@ def main():
     parser.add_argument("--samples", action="store_true")
     parser.add_argument("--model", required=True, help="Exact model identifier passed to the configured runtime")
     parser.add_argument("--run-dir", type=Path, required=True, help="New directory for review artifacts")
+    parser.add_argument("--resume", action="store_true", help="Revalidate an existing sealed decision without a model call")
     parser.add_argument("--tool-calls", type=int, default=10)
     parser.add_argument("--proposal-attempts", type=int, default=3)
     parser.add_argument("--tool-seconds", type=float, default=10)
@@ -42,6 +46,23 @@ def main():
     requests = [r for r in rows(args.dataset / request_file) if r["case_id"] == args.case]
     if len(requests) != 1:
         parser.error("Case ID must resolve to exactly one request")
+    if args.resume and args.run_dir.exists():
+        from ghost_audit.saved import load, revalidate
+        from ghost_audit.public_index import PublicIndex
+        from ghost_audit.core import Rejected
+        try:
+            manifest, saved = load(args.run_dir / "decision.json")
+            if (manifest.get("runtime_configuration") or {}).get("model") != args.model:
+                raise Rejected("Resume model differs from saved runtime configuration")
+            index = PublicIndex(args.dataset, args.visual_cache,
+                "local-ocr" if args.visual_extractor == "local-ocr" else args.model)
+            result = revalidate(index, requests[0], manifest, saved, limits)
+            print(json.dumps({"resumed": True, "new_model_calls": 0, "output": result["output"]}, indent=2))
+            return 0
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            print(json.dumps({"resumed": False, "new_model_calls": 0, "error": str(exc),
+                "next_action": "Preserve this attempt; use a fresh run directory for a new investigation"}, indent=2))
+            return 2
     extraction = None
     if args.visual_cache:
         try:

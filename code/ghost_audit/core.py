@@ -44,16 +44,8 @@ def explicit_deletion_signal(text):
     The model still interprets intent in general; this rejects only requests that
     explicitly ask to delete/erase/close or verify the already deleted state.
     """
-    value = text.casefold()
-    if re.search(r"\b(?:do not|don't|never|no quiero)\s+(?:delete|erase|remove|eliminar)", value):
-        return False
-    if re.search(r"\b(?:delet|eras|purge|elimin|supprim|effac)\w*\b|削除", value):
-        return True
-    if re.search(r"\b(?:confirm|verify|check|audit)\b", value) and re.search(
-        r"\b(?:profile|account|personal data|remaining records)\b.{0,90}"
-        r"\b(?:gone|removed|cannot identify|no longer identify)\b", value):
-        return True
-    return False
+    from .authorization import authorization_status, Authorization
+    return authorization_status(text) == Authorization.YES
 
 
 @dataclass(frozen=True)
@@ -303,6 +295,9 @@ class Investigation:
             if proposal["deletion_status"] != "NOT_APPLICABLE" or proposal["resources"]:
                 raise Rejected("Non-deletion intent requires NOT_APPLICABLE and no resources")
             return {"case_id": self.request["case_id"], "deletion_status": "NOT_APPLICABLE", "steps_json": []}
+        from .authorization import authorization_status, Authorization
+        if authorization_status(self.request["request_text"]) == Authorization.NO:
+            raise Rejected("Request scope or negation does not authorize account-wide deletion")
         if not self.identity or not self.activity_inspected:
             raise Rejected("Identity search and activity inspection are required")
         if self.ledger["remaining_gaps"] or self.ledger["unresolved_contradictions"]:
@@ -319,7 +314,8 @@ class Investigation:
         return output
 
     def report(self):
-        return {"case_id": self.request["case_id"], "request": self.request, "identity": self.identity,
+        from .saved import binding
+        return {"binding": binding(self.index, self.request, self.limits),"case_id": self.request["case_id"], "request": self.request, "identity": self.identity,
             "limits": asdict(self.limits), "tool_calls": self.tool_calls, "proposal_attempts": self.proposal_attempts,
             "internal_state": "SUPPORTED_SCOPE_RESOLVED" if self.result else "UNRESOLVED",
             "halt_reason": self.halt_reason, "ledger": self.ledger, "observations": self.observations,

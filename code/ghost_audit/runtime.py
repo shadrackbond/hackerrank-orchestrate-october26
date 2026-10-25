@@ -157,7 +157,16 @@ def run_codex(dataset, request, request_file, run_dir, model, limits=Limits(), v
             result["ledger"]["remaining_gaps"].append("Model runtime ended: " + outcome)
         if not result.get("output"):
             result["ledger"]["remaining_gaps"].append("No accepted model proposal")
+        from .saved import binding, seal
+        if "binding" not in result:
+            from .public_index import PublicIndex
+            image_model = "local-ocr" if visual_extractor == "local-ocr" else model
+            result.update(case_id=request["case_id"], request=request, limits=asdict(limits),
+                          binding=binding(PublicIndex(dataset, visual_cache, image_model), request, limits))
+        result["execution_kind"] = "MODEL_ASSISTED"
         report.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+        seal(run_dir, "MODEL_ASSISTED", usage, {"model": model, "limits": asdict(limits),
+             "visual_extractor": visual_extractor})
         return result, usage
 
 

@@ -1,139 +1,118 @@
-# Ghost Data Still Exists
+# Ghost Data Still Exists — best-effort contest submission
 
-Python 3.11+ deletion-audit prototype with a shared evidence index, bounded model tools,
-deterministic policy assessment, and fail-closed delivery checks.
+This submission predicts all 518 participant requests. It has known correctness and
+coverage limitations: prediction, status evidence, and plan certification are separate.
+No hidden accuracy is claimed. Public reference answers are used only by the evaluation
+command after predictions have been saved.
 
-**Delivery state:** all 518 requests have been attempted in a cached deterministic diagnostic.
-250 have supported diagnostic rows; 268 remain unresolved. No submission `output.csv` has
-been generated. Public diagnostics resolve 15/32 cases, with 1/32 whole-case exact matches.
-These are diagnostic results, not end-to-end agent accuracy or proof of exhaustive plans.
-See `evaluation/evaluation_report.md` and `evaluation/usage_report.md`.
+## Setup and run
 
-## Setup
-
-Run from the repository root with participant files in `dataset/`:
+Python 3.11+ and the participant `dataset/` directory are required. Install:
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 
-Fresh visual extraction additionally needs `pdftotext`, `pdftoppm`, the Tesseract shared
-library and English language data (on Debian/Ubuntu: `poppler-utils libtesseract5 tesseract-ocr-eng`).
-The existing validated content-hash cache can be reused without extracting again.
-The source archive excludes caches and the dataset; place the supplied dataset beside `code/`.
-
-## Deterministic processing
-
-Prepare a fresh cache only when needed; this command uses local tools and makes no model calls:
+Existing content-hash extraction caches can be reused. If starting from the source ZIP,
+prepare them locally (no model calls); PDF/OCR extraction needs `pdftotext`, `pdftoppm`,
+the Tesseract shared library and English data (`poppler-utils libtesseract5 tesseract-ocr-eng`
+on Debian/Ubuntu):
 
 ```bash
 python3 code/main.py extract --visual-cache runs/visual-cache
+python3 code/main.py submit --visual-cache runs/visual-cache --run-dir runs/submission --output output.csv
 ```
 
-Use a new output directory for each run:
+Use a new run directory and a nonexistent output path. The submission command does not
+launch extraction, network requests, or model investigations. It produces all requested
+rows, per-case evidence reports, a summary, and `runs/submission/uncertainty_report.json`.
+The delivered root `uncertainty_report.json` is a copy from the measured final run.
+Keep it separate from the three-column submission schema.
+
+## Decision rules and evidence boundary
+
+The existing shared index resolves current and historical identities, follows exact
+resource links, applies both capture and observation cutoffs, and assesses supplied
+policy conditions against cached participant evidence. All existing sources are
+revalidated through this current path; saved labels and reference-derived IDs are
+never imported as evidence. The pre-final sources and reports were preserved under
+`checkpoints/pre-final-submission/` in the working checkout, outside code.zip.
+
+Recognized account/data deletion vocabulary establishes intent, including general
+Portuguese and Korean vocabulary. Recognized correction/access/export requests with
+preservation scope establish non-deletion intent. Unrecognized language remains
+uncertain and never implies NOT_APPLICABLE.
+
+A grounded violation establishes INCOMPLETE despite unrelated gaps. COMPLETE requires
+the strict shared engine's successful scoped evidence check. When neither status can
+be proved, the contest prediction is conservatively INCOMPLETE, explicitly marked as
+inferred in the uncertainty report. This does not claim a violation was observed.
+Workflow reported statuses are not used as proof or fallback labels.
+
+Only currently proved policy actions and resource states contribute steps. Unknown
+retention does not authorize deletion, establish compliance, or erase an independent
+violation. Unproved resources are omitted and recorded as gaps. Some inferred rows
+therefore have empty step arrays. Plans remain uncertified where coverage is missing.
+No identifiers, citations, retention dates, or anonymous-resource associations are invented.
+
+Steps follow FINDING, REMEDIATION, VERIFICATION, with canonical operation/system/resource
+ordering and disabling/blocking before record treatment. Findings and COMPLETE checks
+cite eligible evidence; future INCOMPLETE remediation/verification citations are empty.
+Structural and grounding validators check schema, exact requested case sets, numbering,
+operation/state pairs, ordering, current policy actions, citations and time eligibility.
+The retained scoped certificates cannot guarantee exhaustive discovery or OCR completeness.
+No grounded explicit resource dependency relationships were present in the final reports;
+unknown dependencies remain a coverage limitation.
+
+## Results, evaluation and tests
+
+See `evaluation/evaluation_report.md` and `evaluation/usage_report.md` for the actual
+output-producing run and one public evaluation. Run independent tests with:
 
 ```bash
-python3 code/main.py diagnostic --samples --visual-cache runs/visual-cache --run-dir runs/public-review
-python3 code/evaluation/public_eval.py --reference dataset/sample_output.csv --predictions runs/public-review/predictions.csv --investigations runs/public-review/investigations.json --report runs/public-review/evaluation.json
-python3 code/main.py diagnostic --visual-cache runs/visual-cache --run-dir runs/full-review --publish-output output.csv
+python3 -m unittest discover -s tests -q
 ```
 
-The diagnostic command exits **2 when any case remains unresolved**; this is an expected,
-recorded incomplete outcome, not a completed submission. It never starts extraction or inference.
-Outputs include `summary.json`, `unresolved.json` with precise per-case causes,
-`cases/NNNN.json` with requests, identity, facts, source locations, coverage and tool traces,
-and `supported_partial.csv` containing only accepted rows. Public runs also save evaluator inputs.
-Classification and plan completeness are separate in case reports. Missing facts never receive
-an invented output status. The publication option writes root `output.csv` only for a full
-518-case run with every request accepted and all evidence/schema checks passed.
-It refuses to replace an existing output. Partial CSV files are **not** submission outputs.
-
-Diagnostics use explicit intent heuristics to exercise the same tools and policy engine;
-ambiguous requests remain unresolved. Default diagnostic limits are 128 tool calls,
-3 proposal attempts, 10 seconds per tool and 30 seconds per case. The per-tool bound is
-checked after return; SQL has its own progress timeout. No diagnostic model tokens are spent.
-
-## Bounded model investigation
-
-The existing live adapter requires an installed and authenticated Codex CLI. It has been
-used successfully through an existing ChatGPT login with `gpt-6-sol`; model availability
-and remaining quota are not guaranteed. No direct API credentials or provider switch are assumed.
-The process-group timeout currently requires Linux or macOS.
+The final path's public predictions and evidence were saved before references were read:
 
 ```bash
-python3 code/main.py --samples --case CASE_ID --model AVAILABLE_MODEL --visual-cache runs/visual-cache --run-dir runs/live-review --tool-calls 10 --proposal-attempts 3 --tool-seconds 10 --case-seconds 180
+python3 code/main.py submit --samples --visual-cache runs/visual-cache --run-dir runs/public-final --output runs/public-final/predictions.csv
+python3 code/evaluation/public_eval.py --reference dataset/sample_output.csv --predictions runs/public-final/predictions.csv --investigations runs/public-final/investigations.json --report runs/public-final/evaluation.json
 ```
 
-Replace `CASE_ID` and `AVAILABLE_MODEL` explicitly. Do not launch this command for every
-request automatically. Review the usage projection in `evaluation/usage_report.md` first.
-The child uses an empty working directory, ignores user configuration, and disables shell,
-patching, apps, web and multi-agent tools. Only case-scoped MCP reads and structured proposals
-are exposed; this tool boundary is not an OS-level filesystem isolation guarantee.
-Defaults bound each investigation to 10 tool calls, 3 shared semantic/final proposal attempts,
-10 seconds per tool and 180 seconds overall. There is no hard input-token ceiling in this adapter.
-Timeouts, rejection and exhaustion preserve unresolved reports rather than fabricating rows.
+`diagnostic` and the bounded live/resume tools remain available for research; their
+strict acceptance gates are separate from the explicitly selected `submit` path.
+Prompts are preserved in `code/ghost_audit/runtime.py` and `extraction.py`.
 
-Prompts are in `code/ghost_audit/runtime.py` (`PROMPT`, `CHILD_INSTRUCTIONS`), semantic tool
-schemas in `server.py`, and extraction prompts in `extraction.py`. Native `model_events.jsonl`,
-`runtime_stderr.txt`, `model_prompt.txt`, `usage.json` and `investigation.json` are saved in the
-selected run directory. The two earlier semantic investigations are preserved in the workspace;
-this delivery pass made no new model calls.
+## Artifacts and native traces
 
-## Evidence and policy boundary
+`code.zip` contains sources, tests, requirements, this README, and both evaluation reports.
+It excludes participant data, caches, runtime traces, checkpoints, nested archives and credentials.
+`output.csv`, root `log.txt`, and native `agent-trace.zip` are separate deliverables.
 
-All prediction inputs come from participant-facing identities, history, activity, rules and
-manifest-listed evidence. `sample_output.csv` is opened only by the explicit evaluation command
-after predictions have been saved. Organizer-only material is never a prediction input.
-
-One index normalizes JSON collections/service snapshots, isolated SQLite exports, correlated
-log events, labelled text and supported cached PDF/image structures. Format matching uses
-collection/table schemas, event types, field labels and explicit relationships, never case IDs,
-evidence IDs, filenames, expected labels or numeric suffixes. Export owner/file/download schemas
-establish `export_service` while preserving exporter provenance. Support replica readbacks keep
-the replica source label and normalize to `support_platform` only when that supplying service
-is explicit in the manifest. Resource IDs, identities and capture/observation times remain grounded.
-
-A contact-index query is not a conversation. A support reference and shared order context do
-not establish a support-message resource. Visual proposals need quoted, resource-bound type
-and subject evidence; attachment ownership is checked separately. Financial retention registers
-remain context unless explicit legal-hold semantics establish a hold. Legal holds and security
-retention require supplied active proof; capture time is never record creation time. No retention
-duration is invented. Unknown flags and omitted tombstone fields do not prove compliant states.
-
-The ledger records inspected sources, searched aliases and link types, historical relationships,
-resource/process states, applicable policy conditions, contradictions and remaining gaps. It cannot
-prove unknown associations or eliminate OCR/adapter omissions. COMPLETE accepts sufficient scoped
-proof rather than requiring every global service inventory, and never infers absence from no match.
-All findings and COMPLETE checks cite eligible state evidence; INCOMPLETE remediation and future
-verification have empty citations. An independent delivery validator checks complete step sets,
-phase/operation ordering, fields, identifiers, citations and status against accepted facts.
-
-Known gaps include record-specific retention terms, anonymous-resource historical associations,
-uninterpreted visual regions, shared-context/ownership conditions and ambiguous authorization.
-Eight previously recorded public temporal discrepancies remain excluded at the unchanged cutoff.
-No hidden full-dataset accuracy measurement is available.
-
-## Tests and packaging
+The trace ZIP created during the final session includes completed Codex sessions and
+genuine application-native events. It deliberately excludes the still-active session.
+Follow `agent_trace_instructions.md`: after quitting Codex, run from this repository:
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 code/package.py
+python3 code/export_traces.py --after-session-exit
 ```
 
-The archive has `README.md`, `requirements.txt`, runnable `code/`, independent tests,
-root `evaluation/evaluation_report.md`, root `evaluation/usage_report.md`, and trace-export
-instructions. Prompts are included as source. Its explicit allowlist excludes dataset files,
-runs, caches, credentials, virtual environments, transcripts and nested archives.
-The package is runnable but **not a completed challenge submission** without a valid 518-row output.
+This refreshes `agent-trace.zip` with the now-closed session and writes
+`trace_export_manifest.json`. Review the ZIP before sharing. The exporter preserves
+original files, redacts common token patterns only in exported copies, and excludes
+configuration/authentication stores. Its automated redaction is not a guarantee that
+all sensitive material has been removed.
 
-## Transcript and trace export
+## Interview notes
 
-`log.txt` is the genuine append-only development transcript and stays separate from `code.zip`.
-Follow `agent_trace_instructions.md` for the separate `agent-trace.zip`: finish and quit the
-coding sessions before copying the relevant original rollout files, preserve their structure,
-include relevant application runtime traces, and review/redact secrets. Never copy auth or
-configuration files. An active session cannot yet be exported as a complete finalized trace.
-
-Challenge and submission: https://www.hackerrank.com/contests/hackerrank-orchestrate-october26/challenges/ghost-data-still-exists
+- Architecture: one participant-evidence index; historical identity graph; shared cutoff,
+  policy and state assessment; separate best-effort compiler and strict structural validator.
+- A workflow completion message is a claim. Readbacks, replicas, field values, disabled
+  flows and blocked restores establish state; missing matches never establish absence.
+- Status proof and plan coverage differ. One violation proves incompleteness; COMPLETE
+  needs all required scoped conditions. Unknown retention remains unresolved.
+- Final batch inference is deterministic and spends no model tokens. Earlier bounded
+  model investigations and their native traces remain distinct from the final run.
+- Main limitations: uncertain fallback statuses, missing associations/states, policy
+  applicability gaps, partial visual adapters and low exact public plan agreement.

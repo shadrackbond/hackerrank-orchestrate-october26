@@ -11,16 +11,8 @@ from .engine import _policy, _compliant, _make_output, _scope_kind
 
 def deletion_intent(text):
     """Clear multilingual deletion language. Ambiguity stays unresolved."""
-    value = text.casefold()
-    if explicit_deletion_signal(text): return True
-    if re.search(r"\b(?:do not|don't|never|no quiero)\s+(?:delete|erase|remove|eliminar)", value):
-        return False
-    if re.search(r"\b(?:access|export|correct|update|marketing|unsubscribe|opt.out)\b", value) and not re.search(
-        r"\b(?:delet|eras|remov|clos|purge|elimin|suppress|supprim|effac)\w*\b|削除", value):
-        return False
-    if re.search(r"\b(?:delet|eras|remov|clos|purge|elimin|suppress|supprim|effac)\w*\b|削除", value):
-        return True
-    return None
+    from .authorization import deletion_authorization
+    return deletion_authorization(text)
 
 
 def investigate(index, request, case_seconds=10):

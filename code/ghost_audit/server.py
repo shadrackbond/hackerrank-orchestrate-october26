@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .core import Investigation, Limits, Rejected, rows
 from .public_index import PublicIndex
+from .presentation import compact
 
 
 def object_schema(properties):
@@ -42,6 +43,12 @@ TOOLS = [
          "resources": {"type": "array", "items": RESOURCE}})},
 ]
 for tool in TOOLS:
+    if tool["name"] == "propose_semantic_assessment":
+        tool["inputSchema"]["properties"]["context_type"] = {"type": "string", "enum": ["SHARED_CUSTOMER", "SHARED_AGENT", "SHARED_ORDER"]}
+        tool["description"] += " CONFIRMED SUPPORT_SHARED_CONTEXT requires context_type and substantive resource-bound content quotes; interpretation must explain the retained context."
+    if tool["name"] in {"inspect_evidence", "inspect_visual_evidence", "read_semantic_evidence", "inspect_activity"}:
+        tool["inputSchema"]["properties"].update({"offset": {"type": "integer", "minimum": 0},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 50}})
     tool["annotations"] = {"readOnlyHint": True, "destructiveHint": False,
                            "idempotentHint": False, "openWorldHint": False}
 
@@ -81,7 +88,14 @@ def main():
             elif method == "tools/call":
                 params = msg["params"]
                 try:
-                    value = investigation.call(params["name"], params.get("arguments", {}))
+                    arguments = dict(params.get("arguments", {}))
+                    if {"offset", "limit"} & arguments.keys() and params["name"] not in {
+                            "inspect_evidence", "inspect_visual_evidence", "read_semantic_evidence", "inspect_activity"}:
+                        raise Rejected("This tool does not accept pagination")
+                    offset, limit = arguments.pop("offset", 0), arguments.pop("limit", 20)
+                    if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 50:
+                        raise Rejected("Invalid response pagination")
+                    value = compact(investigation.call(params["name"], arguments), offset, limit)
                     result = {"content": [{"type": "text", "text": json.dumps(value, ensure_ascii=False)}], "isError": False}
                 except (Rejected, KeyError, TypeError, ValueError) as exc:
                     result = {"content": [{"type": "text", "text": str(exc)}], "isError": True}

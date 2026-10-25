@@ -1103,3 +1103,183 @@ branch=main
 repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 parent_agent=none
+
+## [2026-10-25T11:49:32.986710+00:00] Scope/state/context fixes and resumable shared-engine delivery
+
+User Prompt (verbatim, secrets redacted):
+An independent source review reproduced three defects while all 73 existing tests passed. Fix them in one focused pass:
+
+1. Authorization: “I am not requesting deletion; please export my data” must not trigger full deletion or cause rejection of a correctly grounded NOT_APPLICABLE proposal. Marketing-only removal must not authorize account-wide deletion. Handle scope and negation generally; do not add exact-sentence exceptions or simply remove validation.
+
+2. State proof: a result="REDACTED" tombstone with a populated email currently passes compliance. Reconcile claimed states with actual identifying fields and source semantics. Contradictory evidence must not establish compliance. Check the analogous anonymization path.
+
+3. Shared support context: a nonempty message body alone does not establish the policy’s shared-context condition. Require grounded context proof without imposing one exact wording or field format.
+
+Add independent regressions, including paraphrases and renamed identifiers. Preserve all existing cutoff, provenance, and citation protections.
+
+Then connect the existing live investigation path to batch delivery through resumable saved decisions. Revalidate each imported decision against its request, current evidence, configuration, and output contract; reject stale or mismatched results. Aggregate measured usage and retain deterministic-only versus model-assisted provenance. Reuse the existing engine.
+
+Implement and test this integration without launching a live batch or new model calls. Keep tool responses compact enough to avoid repeatedly returning the full ledger and resource graph.
+
+Run tests, one public comparison, and one full deterministic diagnostic after the fixes. Report accuracy, coverage, regressions, and the exact commands for resuming model-assisted work.
+
+Do not reopen retention investigation, invent fallback treatments, fabricate final rows, create PRs, or introduce hardcoded test labels, filename-specific answers, or reference-derived identifiers. Preserve the genuine transcript. State remaining blockers plainly; do not equate passing tests with submission readiness.
+
+Agent Response Summary:
+Fixed the reproduced authorization defects through shared clause/scope/negation checks that guard both authorized and NOT_APPLICABLE proposals; reconciled REDACTED/ANONYMIZED claims with actual identifying fields and required treatment-field evidence, while preserving tombstone stable IDs and keeping handover lookup selectors separate from stored identifiers. Replaced nonempty-body support-policy acceptance with grounded order/agent/conversation context proof, retaining source-bound semantic quotes and all existing cutoff, identity, provenance and citation restrictions without changing retention policy. Added sealed saved decisions to the existing live runtime and batch delivery: bindings cover full request, participant inputs, extracted visual evidence, implementation and configuration; import replays tools through the current engine, validates the compiled contract, rejects stale/mismatched/unresolved artifacts, preserves execution provenance and deduplicates measured prior usage with unknowns explicit; MCP responses page records and omit repeated resource graphs. All 83 tests pass using independent paraphrases, renamed identifiers, end-to-end contradiction rejection, synthetic replay/native-event fixtures and mocked inference; no live model calls or live batch were launched, and exactly one public comparison plus one full diagnostic were run. Coverage regressed from 250 to 186 supported full rows (332 unresolved; 70 lost and six newly resolved, no changed outputs among cases resolved in both), public status accuracy from 15/32 to 9/32, whole-case agreement stayed 1/32, and step recall fell from 70/193 to 32/193; preserved the five public context-proof regressions and one French authorization recognition gap explicitly, withheld output.csv and left the prior archive unchanged.
+
+Actions:
+* Read repository instructions and shared implementation; added authorization.py, proof.py, saved.py and presentation.py; updated core.py, engine.py, public_index.py, public_runner.py, semantic.py, server.py, runtime.py, delivery.py and main.py without a parallel decision engine or answer-specific overrides.
+* Added tests/test_correctness_resume.py covering scope/negation, actual-field contradictions, shared-context relationships, current-engine replay, stale requests/inputs/configuration, tampering, synthetic usage aggregation, batch import and zero-call CLI resume, plus compact pagination. Ran 83 passing independent tests and git diff --check.
+* Ran one public diagnostic and its one post-prediction reference comparison at runs/correctness-resume-public: nine resolved, 23 unresolved, 28.125% status accuracy, 3.125% whole-case agreement, 16.580% step recall, 100% structural step precision, zero comparable citation/order mismatches.
+* Ran one full cached deterministic diagnostic at runs/correctness-resume-full: 518 attempted in 67.072943 seconds, 186 supported/332 unresolved, zero model calls; saved precise causes and comparison.json. The final adjectival marketing-scope safeguard was checked to leave authorization results identical for all 550 participant requests without another prediction/reference run.
+* Updated existing README.md and evaluation reports with commands, usage/provenance distinctions, known regressions and limitations; preserved original native traces and all previous checkpoints. No retention investigation, new live calls, fabricated final rows, refreshed archive, planning document or PR.
+
+Context:
+tool=Codex
+model=gpt-6.1-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none
+
+## [2026-10-25T12:34:11.413211+00:00] Recover five public regressions and preserve semantic uncertainty
+
+User Prompt (verbatim, secrets redacted):
+The latest pass regressed task performance. Prioritize recovery of correct end-to-end answers. Freeze resume, fingerprinting, packaging, and presentation work.
+
+Use the saved before/after reports to investigate the six public regressions. Select and diagnose them from their changed outputs and participant evidence; keep reference answers confined to subsequent evaluation.
+
+1. Fix the French authorization regression generally. Authorization must distinguish YES, NO, and UNCERTAIN. Failure of an English pattern is not evidence of non-authorization. A deterministic check must not veto a grounded model interpretation merely because it cannot recognize the language. Preserve protection against explicit negation and marketing-only scope.
+
+2. For the five support regressions, trace the exact resource-linked conversation content to the supplied shared-context condition. Distinguish:
+   - Genuine missing evidence.
+   - Existing evidence rejected because the new proof checker demands a particular field, phrase, or serialization.
+   - Semantic interpretation that the model can perform using available evidence.
+
+Accept equivalent supported evidence across JSON, logs, and visual text. Neither nonempty text alone nor a particular keyword alone establishes shared context. Fix demonstrated general defects without restoring unsupported assumptions.
+
+Preserve the contradictory-PII compliance fix and all cutoff, subject linkage, provenance, and citation protections.
+
+If a support regression has sufficient evidence but needs semantic interpretation, use the existing assessment tools for at most ONE bounded live pilot. Select it before opening references. Limit it to 8 tool calls, 2 proposal attempts, and 90 seconds. Skip inference if a required fact is absent. Save and revalidate any accepted decision through the new batch integration.
+
+Run focused regressions first, then ONE public comparison. Do not rerun all 518 until this pass demonstrates a correctness improvement.
+
+Report recovered and still-blocked regressions, whole-case agreement, step recall, actual model usage, and the precise remaining bottleneck. If nothing improves, provide the relevant authorization and shared-context functions plus one evidence-to-rejection trace; do not expand the implementation further.
+
+No hardcoded test labels, case-specific answers, filename overrides, reference-derived identifiers, invented facts, PRs, or additional infrastructure. Preserve the genuine transcript.
+
+Agent Response Summary:
+Selected all six regressions by changed saved outputs and traced their participant evidence before opening references: French suppression wording was unrecognized, four support records explicitly preserve customer order/delivery interactions, and one only summarizes an account-access contact. Added explicit YES/NO/UNCERTAIN authorization handling, French morphology/negation and conservative unknown-language behavior; removed the requirement for a literal order ID where a grounded customer interaction/topic relationship proves context, and allowed source-bound semantic interpretation across JSON, correlated logs and anchored visual text without changing contradictory-PII, identity, cutoff, provenance or citation protections. Selected case_27 before reference access and ran exactly one genuine gpt-6-sol pilot with 8 tools/2 proposals/90 seconds limits: it used 6 tools (including one preserved pre-identity inspection rejection), submitted one accepted INSUFFICIENT assessment, and produced no final decision to import or revalidate as an accepted row; actual usage was 117862 input tokens including 98944 cached, 1075 output tokens, and 30.958783 seconds, with eight usage-bearing responses and unavailable provider request count/cost. All 87 independent tests passed, then one public comparison recovered case_03, case_26, case_28, case_29 and case_30 with no newly regressed or changed prior resolved outputs: status accuracy improved 9/32 to 14/32 and step recall 32/193 to 66/193, while whole-case agreement remained 1/32 and 18 cases remained unresolved. Preserved the case_27 evidence-sufficiency gap and 22 missing reference steps among resolved rows, updated existing evaluation/usage reporting, did not rerun the 518 requests, and added no resume/fingerprinting/packaging/presentation infrastructure, final output or PR.
+
+Actions:
+* Read saved before/after investigation reports and existing authorization/support proof functions; checked the five exact eligible support rows in the supplied service export and saved source excerpts under runs/recovery-selection without seeding from references.
+* Updated authorization.py, proof.py, core.py, semantic.py and the assessment tool's optional context_type schema in server.py; preserved the existing delivery, saved-decision, runtime, presentation and packaging implementations. Added tests/test_recovery.py and updated scripted semantic fixtures.
+* Ran focused recovery tests and all 87 independent tests, covering French paraphrases/negation, unknown languages with English loan words, marketing-only protection, renamed IDs, equivalent JSON/log/visual quotes, and rejection of greetings or isolated keywords padded by serialization metadata.
+* Saved selection.json before the pilot or reference comparison; invoked the existing bounded runtime once under runs/recovery-account-access-live with native trace write permission. Preserved raw model events, prompt, rejection, accepted INSUFFICIENT source quotes, investigation, sealed artifact and measured usage; made no retry or second pilot.
+* Ran exactly one public diagnostic and post-prediction reference comparison at runs/recovery-public; saved comparison.json and review.json and updated README.md and existing evaluation reports with recoveries, remaining gaps and actual usage. No full-dataset rerun, new architecture, speculative evidence search, generated submission output, new planning document, refreshed archive or PR.
+
+Context:
+tool=Codex
+model=gpt-6.1-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none
+
+## [2026-10-25T12:41:48.580873+00:00] SESSION START
+
+tool=Codex
+model=gpt-6.1-sol
+Repo Root: /home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+Branch: main
+Worktree: /home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+Parent Agent: none
+Language: py
+Time Remaining: not configured
+
+## [2026-10-25T12:46:58.096489+00:00] Saved-evidence delivery decision and status versus plan accounting
+
+User Prompt (verbatim, secrets redacted):
+Stop isolated model pilots and freeze infrastructure. We need a concrete route to delivery.
+
+Using existing saved reports only, separate deletion-status certainty from plan completeness across the 518 requests:
+
+- NOT_APPLICABLE: supported non-deletion intent.
+- INCOMPLETE: at least one grounded policy violation establishes incompleteness, even if other investigation gaps remain.
+- COMPLETE: sufficient evidence establishes every required condition.
+- Status genuinely unresolved.
+
+Do not assume classification_status is trustworthy merely because it exists. Trace how it was computed. Unknown retention or another missing resource must not authorize deletion, establish compliance, or automatically erase a separately proven violation.
+
+Report mutually exclusive case counts for those four groups. Separately count complete versus incomplete plans. Explain whether the current all-or-nothing acceptance gate suppresses supported status decisions because their plans remain unfinished.
+
+For the public examples, evaluate supported status classifications separately from complete-row agreement, using saved evidence and predictions. Keep reference answers strictly in evaluation.
+
+Identify which remaining gaps are recoverable from already supplied evidence and which need organizer clarification. Reuse the documented investigations; do not repeat retention searches or the previous missing-step review.
+
+Return a short delivery decision: the smallest remaining work needed for evidence-supported statuses and complete plans, what cannot currently be established, and whether a valid 518-row submission is achievable under those constraints.
+
+No code changes, new tests, model calls, full reruns, packaging, or fabricated rows. Do not serialize partial plans as completed submission answers. No hardcoded labels, file-specific answers, or reference-derived identifiers. Preserve the genuine transcript.
+
+Agent Response Summary:
+Reviewed saved full/public reports and existing compiler, authorization, proof, and gate implementations without running the application, tests, models, or packaging. Latest full-checkpoint facts support 7 non-deletion, 302 incomplete, 70 scoped complete, and 139 unresolved cases after rejecting 19 unproved raw INCOMPLETE classifications; 193 grounded incomplete statuses were suppressed by the plan gate. Reused earlier same-request/same-data French violation evidence, clear saved non-deletion intent, and the documented general support relationship recovery to obtain status-only accounting of 10 NOT_APPLICABLE, 315 INCOMPLETE, 81 scoped COMPLETE, and 112 unresolved, without creating prediction rows; these add 10 French violations, 3 non-deletion requests, 3 support violations, and 11 support compliance decisions. Current saved acceptance remains 186/518 versus 332 blocked; 179 accepted deletion-plan candidates plus 10 supported empty non-deletion plans give 189 scoped plan-ready cases and 329 unfinished/unvalidated, without claiming exhaustive completeness. Evaluated status-only public support at 26/32 (21 incomplete and 5 scoped complete), all agreeing with evaluation-only reference statuses, versus saved 14/32 accepted rows and 1/32 exact whole-row agreement; reused the prior retention and missing-step investigation conclusions without repeating their searches.
+
+Actions:
+* Read saved report JSON/CSV summaries, prior documented investigations in log.txt, evaluation reports, and relevant existing source paths.
+* Performed read-only aggregation and evidence review of saved artifacts; no new predictions or submission artifacts were written.
+* Appended genuine transcript entries to root log.txt only; preserved pre-existing source changes and all earlier entries.
+
+Context:
+tool=Codex
+model=gpt-6.1-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none
+
+## [2026-10-25T13:09:43.032929+00:00] Final best-effort submission artifacts and measured evaluation
+
+User Prompt (verbatim, secrets redacted):
+We are in final submission mode. Spend at most 25 minutes on implementation and finalization, preserving at least 10 minutes for my upload and interview preparation. If less time remains, shorten implementation accordingly.
+
+Replace the previous instruction to withhold output.csv until every case is certified. Produce a best-effort contest submission, while keeping evidence certification and uncertainty separate from prediction.
+
+1. Preserve the current checkpoint. Reuse supported decisions and participant-evidence observations, revalidating older evidence against the current request, cutoff, and rules.
+
+2. Produce one prediction for every one of the 518 requests. For unresolved cases, make the best supported inference from participant evidence and request meaning using general, documented decision rules. Distinguish inferred predictions from established facts in a separate uncertainty report.
+
+Do not manufacture identifiers, citations, retention dates, resource associations, or evidence. Do not label unknown cases COMPLETE merely because no violation was extracted. Do not assign NOT_APPLICABLE merely because request language is unrecognized. Never fill missing resources from reference answers.
+
+3. Generate the strongest supported ordered steps for each prediction. Preserve grounded findings and required remediation/verification. If investigation or plan coverage remains incomplete, document that limitation explicitly; do not call the plan certified or complete.
+
+4. Keep strict structural validation: exactly 518 unique requested case IDs, sorted; exact CSV header; valid statuses and JSON; seven required step fields; consecutive numbering; permitted operation/state pairs; canonical ordering; correct citation placement and cutoff eligibility. Keep uncertainty outside the submission schema.
+
+5. Use existing caches and tools. Avoid per-case nested model investigations, architecture expansion, and further retention searches. Any model use must be tightly bounded and justified by a decision it can actually resolve.
+
+6. Run final tests and one public evaluation of the actual final prediction path. Report measured results without claiming hidden accuracy. Update evaluation/usage reports to describe the actual output-producing run, inferred decisions, incomplete coverage, and unavailable usage honestly.
+
+7. Rebuild and inspect code.zip from current sources. Keep log.txt and the required native trace export separate, following agent_trace_instructions.md. Provide output.csv, code.zip, transcript and trace paths, plus concise interview notes.
+
+No hardcoded test labels, filename-specific answers, numeric-suffix associations, reference-derived identifiers, fabricated transcripts, or invented usage.
+
+Finish the deliverables rather than another investigation report. State clearly that this is a best-effort submission with known correctness and coverage limitations. Do not upload or submit on my behalf.
+
+Agent Response Summary:
+Preserved the pre-final source/report/archive/transcript checkpoint, then added an explicit deterministic contest path using the existing participant-evidence index, identity/cutoff checks, policy assessment and canonical compiler, with general multilingual/non-deletion intent rules and separate uncertainty/certification reporting. The actual 63.257112-second final run produced 518 structurally validated rows: 423 INCOMPLETE, 85 COMPLETE and 10 NOT_APPLICABLE; 429 statuses are established within recorded scope, 89 are explicitly inferred, and 283 plans remain uncertified; all 186 previously accepted rows were preserved unchanged and no application model calls or new extraction occurred. Exactly one public evaluation of this final prediction path measured 27/32 correct statuses, 1/32 exact rows, 131/132 step precision, 131/193 recall, 704/1351 field agreement and four citation disagreements; no hidden accuracy is claimed and references stayed evaluation-only. All 92 independent tests passed locally and from a clean extracted archive; all 518 saved report/CSV pairs passed grounding, cutoff, schema, numbering, operation/state, ordering and citation checks, and rebuilt code.zip was inspected for current sources, required reports and exclusions. Updated README, actual-run evaluation/usage reports, final validation records and interview notes; prepared a separately reviewed native trace ZIP with 65 completed-session/application files and 3798 valid JSONL events, preserving originals and redacting 12 token-pattern occurrences only in exported copies, with the active session explicitly pending the required post-quit export command; nothing was uploaded or submitted.
+
+Actions:
+* Preserved checkpoints/pre-final-submission/checkpoint.zip and its manifest.
+* Added code/ghost_audit/contest.py, code/export_traces.py and tests/test_contest.py; updated code/main.py and code/package.py.
+* Generated root output.csv, uncertainty_report.json, runs/final-submission and runs/final-public; ran one public evaluation after predictions.
+* Updated README.md, evaluation/evaluation_report.md, evaluation/usage_report.md and evaluation/final_validation.json; rebuilt and inspected code.zip.
+* Ran independent tests locally and from clean archive extraction, validated every final row/report, and checked archive/native JSONL integrity.
+* Prepared separate agent-trace.zip and trace_export_manifest.json; active session will be included only after Codex exits via python3 code/export_traces.py --after-session-exit.
+
+Context:
+tool=Codex
+model=gpt-6.1-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none

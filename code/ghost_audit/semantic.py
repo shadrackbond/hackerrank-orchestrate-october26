@@ -1,7 +1,12 @@
 """Narrow, source-quoted semantic assessments inside the existing case validator."""
 import re
+import json
 
 from .core import Rejected, eligible, tokens
+
+
+def resource_in(text, rid):
+    return bool(rid and re.search(r"(?<!\w)" + re.escape(rid) + r"(?!\w)", text, re.I))
 
 
 def evidence_units(session, fid):
@@ -14,18 +19,22 @@ def evidence_units(session, fid):
         return [{"source_location": row["source_location"], "text": row["text"]}
                 for row in session.index.visual_observations[fid]]
     observations = [o for o in session.observations if o["evidence_id"] == fid]
+    if meta["file_path"].lower().endswith(".json"):
+        return [{"source_location": o["source_location"], "text": json.dumps(o["record"], ensure_ascii=False)}
+                for o in observations]
     traces = {p["source_location"].split("trace=", 1)[1] for o in observations
               for p in o.get("trace_proof", []) if "trace=" in p["source_location"]}
     identifiers = {a["value"].casefold() for a in session.identity["aliases"]} | {
         o["resource_id"].casefold() for o in observations}
     return [{"source_location": meta["file_path"] + f"#line={n}", "text": line}
             for n, line in enumerate(session.index.contents[fid].splitlines(), 1)
-            if identifiers & tokens(line) or any(t in tokens(line) for t in traces)]
+            if identifiers & tokens(line) or any(resource_in(line, o["resource_id"]) for o in observations)
+            or any(t in tokens(line) for t in traces)]
 
 
 def validate_assessment(session, proposal):
     expected = {"kind", "evidence_id", "system_id", "resource_id", "conclusion", "supporting_quotes", "explanation"}
-    if set(proposal) != expected or proposal["kind"] not in {"SUPPORT_SHARED_CONTEXT", "VISUAL_SUPPORT_RECORD"} \
+    if set(proposal) - {"context_type"} != expected or proposal["kind"] not in {"SUPPORT_SHARED_CONTEXT", "VISUAL_SUPPORT_RECORD"} \
             or proposal["conclusion"] not in {"CONFIRMED", "INSUFFICIENT"}:
         raise Rejected("Invalid semantic assessment schema")
     if any(not isinstance(proposal[k], str) for k in expected - {"supporting_quotes"}):
@@ -47,7 +56,7 @@ def validate_assessment(session, proposal):
                 and o["evidence_id"] == fid]
     catalog_grounded = any(e["target_system"] == system and e["resource_id"] == rid
                            for e in session.ledger.get("identity_links", []))
-    literal_resource = any(rid and rid in tokens(q["quote"]) for q in quotes if q["role"] == "RESOURCE")
+    literal_resource = any(resource_in(q["quote"], rid) for q in quotes if q["role"] == "RESOURCE")
     if not grounded and not catalog_grounded and not literal_resource:
         raise Rejected("Resource identity is not grounded")
     review = {**proposal, "accepted_scope": "SEMANTIC_ASSESSMENT_ONLY", "observation": None}
@@ -60,13 +69,39 @@ def validate_assessment(session, proposal):
     if proposal["kind"] == "SUPPORT_SHARED_CONTEXT":
         if not grounded or any(o["category"] != "SUPPORT_MESSAGE" for o in grounded):
             raise Rejected("Support context requires an existing subject-linked support observation")
-        # Operational metadata and an email lookup do not establish conversation content.
-        if not any(re.search(r'\b(?:message_text|message_excerpt|body|conversation|order_reference)=', q["quote"]) for q in context):
+        from .proof import message_contents, substantive_context_quote
+        if proposal.get("context_type") not in {"SHARED_CUSTOMER", "SHARED_AGENT", "SHARED_ORDER"}:
+            raise Rejected("Confirmed context requires an explicit policy-context interpretation")
+        if not proposal["explanation"].strip():
+            raise Rejected("Semantic context interpretation requires an explanation")
+        original = max(grounded, key=lambda o: o["observed_at"])
+        contents = message_contents(original["record"])
+        if fid in session.index.visual_observations:
+            contents += [original["record"].get("visual_text", "")]
+        if not any(content in q["quote"] or q["quote"] in content for content in contents for q in context):
             raise Rejected("Operational lookup metadata is not proof of shared support context")
+        quoted_content = [content if content in q["quote"] else q["quote"]
+                          for content in contents for q in context
+                          if content in q["quote"] or q["quote"] in content]
+        if not any(substantive_context_quote(text) for text in quoted_content):
+            raise Rejected("A greeting or isolated keyword is not substantive shared-context proof")
         traces = {p["source_location"].split("trace=", 1)[1] for o in grounded for p in o.get("trace_proof", [])
                   if "trace=" in p["source_location"]}
-        if not all(rid.casefold() in tokens(by_location[q["source_location"]]) or
-                   traces & tokens(by_location[q["source_location"]]) for q in context):
+        bound = all(q["source_location"] == original["source_location"] or
+                    resource_in(by_location[q["source_location"]], rid) or
+                    traces & tokens(by_location[q["source_location"]]) for q in context)
+        if fid in session.index.visual_observations:
+            # Interpret only the already grounded support resource. A page/image
+            # needs explicit resource and subject anchors; a global caption is insufficient.
+            resource_quotes = [q for q in quotes if q["role"] == "RESOURCE" and resource_in(q["quote"], rid)]
+            subject_quotes = [q for q in quotes if q["role"] == "SUBJECT" and any(
+                a["value"].casefold() in tokens(q["quote"]) for a in session.identity["aliases"])]
+            def scope(location):
+                fragment = location.split("#", 1)[-1]
+                return fragment.split(",", 1)[0] if fragment.startswith("page=") else "image"
+            scopes = {scope(q["source_location"]) for q in context + resource_quotes + subject_quotes}
+            bound = bool(resource_quotes and subject_quotes) and len(scopes) == 1
+        if not bound:
             raise Rejected("Context quote is not bound to the grounded resource or its trace")
         original = max(grounded, key=lambda o: o["observed_at"])
         observation = {**original, "record": {**original["record"], "shared_context_verified": True}}
@@ -93,14 +128,14 @@ def validate_assessment(session, proposal):
         # A ticket reference and shared order context do not identify the resource type.
         # Type must be explicitly bound to this resource on the same customer page.
         types = [q for q in quotes if q["role"] == "TYPE" and page(q["source_location"]) in pages
-                 and rid.casefold() in tokens(q["quote"])]
+                 and resource_in(q["quote"], rid)]
         messages = [q for q in types if re.search(r"\b(?:conversation|message)\s+record\b", q["quote"], re.I)]
         attachments = [q for q in types if re.search(r"\battachment\s+(?:record|resource)\b", q["quote"], re.I)]
         if bool(messages) == bool(attachments):
             raise Rejected("Visual resource category unproved: support reference and shared context are insufficient")
         category = "SUPPORT_MESSAGE" if messages else "SUPPORT_ATTACHMENT"
         ownership = [q for q in quotes if q["role"] == "OWNERSHIP" and page(q["source_location"]) in pages
-                     and rid.casefold() in tokens(q["quote"]) and any(email in tokens(q["quote"]) for email in emails)
+                     and resource_in(q["quote"], rid) and any(email in tokens(q["quote"]) for email in emails)
                      and re.search(r"\bbelongs only to\b", q["quote"], re.I)]
         observation = {"evidence_id": fid, "capture_at": meta["captured_at"], "observed_at": meta["captured_at"],
             "source_location": resource_quotes[0]["source_location"], "scope": fid + ":visual-support-record",

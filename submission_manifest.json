@@ -1,0 +1,28 @@
+{
+  "kind": "BEST_EFFORT_SUBMISSION_WITH_KNOWN_LIMITATIONS",
+  "created_at": "2026-10-25T13:09:43.041942+00:00",
+  "files": {
+    "output.csv": {
+      "bytes": 407115,
+      "sha256": "1760a666b16914f9ebb7c91e196d6576dbafe6a5f7e58bdd5333180866a89fa3"
+    },
+    "code.zip": {
+      "bytes": 113045,
+      "sha256": "694eeabe3bd59eaed438441c600408f6137576466ea2a3a9ca06c54b9d304ea8"
+    },
+    "log.txt": {
+      "bytes": 103314,
+      "sha256": "636763dc3bfc3cfdfda062a083031d7705a90d24c889b8ab48cf66c1dd2322a4"
+    },
+    "uncertainty_report.json": {
+      "bytes": 291422,
+      "sha256": "aa45c3aa29d4bde804d994ca0d4861137a1d73f41aa9ff8e3b8a88bb7d070869"
+    },
+    "agent-trace.zip": {
+      "bytes": 4567188,
+      "sha256": "38a096399dd51c82461053962b99d4f4950f44159d442a0c27939dce862a8c8d"
+    }
+  },
+  "native_trace_requires_post_quit_refresh": true,
+  "post_quit_command": "python3 code/export_traces.py --after-session-exit"
+}
