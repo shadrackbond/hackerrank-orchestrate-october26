@@ -29,6 +29,9 @@ use search_evidence or inspect_activity only if another lookup is needed.
 Use tool results to decide the true state and required treatment.
 JSON, logs, SQL, text, and cached visual observations use the same deterministic policy engine.
 Unassessed visual transcription and unknown policy conditions remain gaps.
+For visual support resources, quote explicit resource-bound TYPE evidence (conversation/message record
+or attachment record/resource); a ticket reference and shared order context do not prove category.
+Attachment subject-only ownership requires a resource-bound OWNERSHIP quote, not a support reference.
 Presence in ANY replica is a remaining profile even if the primary is absent or deletion reported success.
 Past replication events do not alone establish an active recreation process.
 Propose the complete set of grounded resources, state, required_action, and evidence_id.

@@ -13,7 +13,7 @@ from test_audit import fixture, csv_file, CAPTURE
 
 
 class SemanticToolTests(unittest.TestCase):
-    def session(self, root, visual=False, other_subject=False):
+    def session(self, root, visual=False, other_subject=False, explicit_type=True):
         request = fixture(root)
         rule = {"rule_id": "support_rule", "data_category": "SUPPORT_MESSAGE",
                 "condition": "Conversation contains shared customer, agent, or order context that must be retained",
@@ -28,6 +28,7 @@ class SemanticToolTests(unittest.TestCase):
             cache.mkdir()
             lines = ["Support reference ticket_X / note_custom", "Customer old@example.test",
                      "Order ORD-X: agent arranged a delivery update."]
+            if explicit_type: lines.append("Conversation record note_custom")
             if other_subject: lines.append("Another customer different@example.test")
             source_cache_path(cache, blob, suffix, "local-ocr").write_text(json.dumps({"version": VERSION,
                 "content_sha256": hashlib.sha256(blob).hexdigest(), "extractor": "synthetic_cache_NOT_model",
@@ -48,7 +49,9 @@ class SemanticToolTests(unittest.TestCase):
         units = session.call("read_semantic_evidence", {"evidence_id": "proof_custom"})["units"]
         def quote(unit, role): return {"source_location": unit["source_location"], "quote": unit["text"], "role": role}
         quotes = [quote(units[1], "CONTEXT")]
-        if visual: quotes = [quote(units[0], "RESOURCE"), quote(units[1], "SUBJECT"), quote(units[2], "CONTEXT")]
+        if visual:
+            quotes = [quote(units[0], "RESOURCE"), quote(units[1], "SUBJECT"), quote(units[2], "CONTEXT")]
+            quotes.extend(quote(u, "TYPE") for u in units if "Conversation record" in u["text"])
         return {"kind": "VISUAL_SUPPORT_RECORD" if visual else "SUPPORT_SHARED_CONTEXT", "evidence_id": "proof_custom",
                 "system_id": "support_platform", "resource_id": "note_custom", "conclusion": "CONFIRMED",
                 "supporting_quotes": quotes, "explanation": "The quoted customer record contains shared order context."}
@@ -90,6 +93,14 @@ class SemanticToolTests(unittest.TestCase):
             session = self.session(Path(folder), visual=True, other_subject=True)
             with self.assertRaisesRegex(Rejected, "unassociated subject"):
                 session.call("propose_semantic_assessment", self.proposal(session, visual=True))
+
+    def test_shared_order_and_support_reference_do_not_establish_category(self):
+        with tempfile.TemporaryDirectory() as folder:
+            session = self.session(Path(folder), visual=True, explicit_type=False)
+            with self.assertRaisesRegex(Rejected, "category unproved"):
+                session.call("propose_semantic_assessment", self.proposal(session, visual=True))
+            self.assertIsNone(session.result)
+            self.assertFalse(session.semantic_observations)
 
     def test_unknown_review_does_not_clear_gaps_or_accept_final_output(self):
         with tempfile.TemporaryDirectory() as folder:

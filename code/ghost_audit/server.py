@@ -17,7 +17,7 @@ STRING = {"type": "string"}
 RESOURCE = object_schema({k: STRING for k in
     ("system_id", "resource_id", "state", "required_action", "evidence_id")})
 QUOTE = object_schema({"source_location": STRING, "quote": STRING,
-                       "role": {"type": "string", "enum": ["RESOURCE", "SUBJECT", "CONTEXT", "STATE"]}})
+                       "role": {"type": "string", "enum": ["RESOURCE", "SUBJECT", "CONTEXT", "STATE", "TYPE", "OWNERSHIP"]}})
 TOOLS = [
     {"name": "resolve_identity", "description": "Resolve request email to one subject and eligible historical aliases.",
      "inputSchema": object_schema({})},

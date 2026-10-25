@@ -58,14 +58,19 @@ def _record_state(row, category):
     if category == "SEARCH_INDEX_ENTRY" and row.get("hits", {}).get("total") == 0:
         return "ABSENT"
     if category == "DATA_FLOW":
-        if "enabled" not in row: return "UNKNOWN"
-        return "ACTIVE" if row.get("enabled") in {True, 1, "true", "1"} else "DISABLED"
+        flag = row.get("enabled")
+        if flag in {True, 1, "true", "1"}: return "ACTIVE"
+        if flag in {False, 0, "false", "0"}: return "DISABLED"
+        return "UNKNOWN"
     if category == "BACKUP_ARCHIVE":
+        truth, falsehood = {True, 1, "true", "1"}, {False, 0, "false", "0"}
         if "eligible" in row or "deletion_block" in row:
-            return "ACTIVE" if row.get("eligible") in {True, 1, "true", "1"} and \
-                row.get("deletion_block") in {False, 0, "false", "0"} else "BLOCKED"
-        if "restore_allowed" not in row: return "UNKNOWN"
-        return "ACTIVE" if row.get("restore_allowed") in {True, 1, "true", "1"} else "BLOCKED"
+            if row.get("deletion_block") in truth or row.get("eligible") in falsehood: return "BLOCKED"
+            if row.get("eligible") in truth and row.get("deletion_block") in falsehood: return "ACTIVE"
+            return "UNKNOWN"
+        if row.get("restore_allowed") in truth: return "ACTIVE"
+        if row.get("restore_allowed") in falsehood: return "BLOCKED"
+        return "UNKNOWN"
     if category == "ANALYTICS_PROFILE" and not any(k in row for k in
             ("user_id", "customer_reference", "email", "phone", "email_hash")):
         return "UNKNOWN"
@@ -76,9 +81,11 @@ def _record_state(row, category):
             ("requester_name", "requester_email", "requester_phone")) and (row.get("message_excerpt") or row.get("message_text")) \
             and not any(row.get(k) for k in ("requester_name", "requester_email", "requester_phone")):
         return "REDACTED"
-    if category == "ACCOUNT_TOMBSTONE" and not any(row.get(k) for k in
-        ("name", "full_name", "email", "phone", "email_hash")):
-        return "REDACTED"
+    if category == "ACCOUNT_TOMBSTONE":
+        direct = {"email", "phone", "email_hash"}
+        if not direct <= row.keys() or not {"name", "full_name"} & row.keys():
+            return "UNKNOWN"
+        return "PRESENT" if any(row.get(k) for k in (*direct, "name", "full_name")) else "REDACTED"
     return "PRESENT"
 
 
@@ -155,7 +162,11 @@ def _json_rows(obj, meta):
                 row = {**row, **row["profile"]}
             if category == "SEARCH_INDEX_ENTRY" and isinstance(row.get("hits"), dict):
                 for j, hit in enumerate(row["hits"].get("documents", [])):
-                    combined = {**row, **hit, "resource_id": row.get("resource_id", hit.get("resource_id", ""))}
+                    combined = {**row, **hit, "resource_id": hit.get("resource_id", ""),
+                                "lookup_query": row.get("query")}
+                    # A query is a selector, not ownership proof for each returned hit.
+                    combined.pop("query", None)
+                    combined.pop("hits", None)
                     out.append(_obs(meta, f"{location}/{n}/hits/{j}", scope, system_id, category,
                                     combined, observed, "PRESENT"))
                 if row["hits"].get("total") == 0:
@@ -323,12 +334,24 @@ def _log_rows(text, meta, link_records=None):
             category = row.get("record_type") or {
                 "account_service": "USER_PROFILE", "profile_service": "USER_PROFILE",
                 "search_service": "SEARCH_INDEX_ENTRY", "analytics_platform": "ANALYTICS_PROFILE",
-                "support_platform": "SUPPORT_MESSAGE", "support_replica": "SUPPORT_MESSAGE",
+
                 "integration_service": "DATA_FLOW", "backup_service": "BACKUP_ARCHIVE",
                 "security_service": "SECURITY_AUDIT_LOG", "export_service": "USER_EXPORT",
             }.get(system)
-            if event == "contact_lookup_completed" and system == "analytics_platform":
-                category = "SECONDARY_IDENTIFIER"
+            if not row.get("record_type"):
+                source_labels = {str(p["fields"].get("source", "")).casefold() for p in trace_proof}
+                if event in {"contact_query_completed", "contact_lookup_completed"} and (
+                        system == "analytics_platform" or any("contact_index" in label for label in source_labels)):
+                    category = "SECONDARY_IDENTIFIER"
+                elif system in {"support_platform", "support_replica"} and (event in {
+                        "message_read", "message_pii_scan"} or any(k in row for k in ("message_text", "message_excerpt", "body"))):
+                    category = "SUPPORT_MESSAGE"
+                elif system in {"support_platform", "support_replica"} and event == "attachment_pii_scan":
+                    category = "SUPPORT_ATTACHMENT"
+            source_system = system
+            # The manifest identifies the supplying service; replica identity is kept as scope.
+            if system == "support_replica" and meta.get("origin") == "support_platform":
+                system = meta["origin"]
             if link_records is not None:
                 link_records.append({"evidence_id": meta["file_id"], "capture_at": meta["captured_at"],
                     "observed_at": at, "source_location": meta["file_path"] + f"#line={n},trace={trace}",
@@ -344,6 +367,7 @@ def _log_rows(text, meta, link_records=None):
             scope = f"{meta['file_id']}:log:{system}:{trace or n}"
             observation = _obs(meta, f"line={n},trace={trace}", scope, system, category, joined, at, state)
             observation["trace_proof"] = trace_proof
+            observation["source_system_label"] = source_system
             out.append(observation)
     return out, set()
 
@@ -400,7 +424,14 @@ def _visual_rows(index, meta):
         "content type": ("object_storage", "SUPPORT_ATTACHMENT"),
         "audience operations": ("marketing_platform", "MARKETING_PROFILE"),
     }.items():
-        if word in lower: system, category = pair; break
+        if word not in lower: continue
+        if word == "conversation" and not (
+                re.search(r"\bconversation\s+updated[^\n]*\b\d+\s+records\b", text, re.I)
+                and re.search(r"\b\d{2}:\d{2}\s+\S+", text)):
+            # Shared order prose and support references are contextual, not a message table.
+            continue
+        system, category = pair
+        break
     if not system: return [], set()
     ids = list(dict.fromkeys(re.findall(r"\b(?:account|search|data_flow|analytics|export|support|backup|audit_record|marketing)_\d+\b", text)))
     if len(ids) != 1: return [], set()
@@ -511,7 +542,9 @@ def case_view(index, identity, cutoff, return_search=False):
            hash(tuple(tuple(sorted(e.items())) for e in index.history)),
            len(index.observations), len(index.link_records))
     cache = index.__dict__.setdefault("_link_cache", {})
-    if key not in cache: cache[key] = link_subject(index, identity, cutoff)
+    if key not in cache:
+        if len(cache) >= 4: cache.pop(next(iter(cache)))
+        cache[key] = link_subject(index, identity, cutoff)
     selected, candidates, known, edges, audit, catalog_claims = copy.deepcopy(cache[key])
     for inventory in index.inventories:
         fid = inventory["evidence_id"]

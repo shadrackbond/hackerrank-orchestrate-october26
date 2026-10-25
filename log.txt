@@ -1006,3 +1006,51 @@ branch=main
 repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 parent_agent=none
+
+## [2026-10-25T10:32:51.370163+00:00] Delivery gate, cached full diagnostic, and runnable partial package
+
+User Prompt (verbatim, secrets redacted):
+We are entering the delivery phase. I have 44% of my current allowance remaining and at most two resets before submission. Complete the existing implementation in one focused pass; avoid further exploratory feature cycles.
+
+First, inspect the current state and give a short ordered execution plan. Then proceed without stopping after each component.
+
+Priorities:
+
+1. Correct unsupported resource classification. A support reference or shared order context does not itself establish SUPPORT_MESSAGE. Determine category from grounded artifact structure, ownership, and resource relationships. Do not choose DELETE or REDACT to match a reference answer.
+
+2. Finish the existing general adapters and model-tool integration where the participant evidence supports it. Separate evidence interpretation from deterministic policy enforcement. Do not add another parallel decision engine.
+
+3. Remove assumptions stricter than the task contract, but preserve grounding, cutoff, identity, and citation checks. Missing information must not become an invented identifier, policy term, or resource state.
+
+4. Run the 32-case diagnostic and independent regressions. Fix demonstrated general defects, prioritizing complete step sets. Limit this to two repair-and-evaluation cycles; do not chase sample agreement with speculative heuristics.
+
+5. Run a full 518-case diagnostic using cached extraction and deterministic processing first. Record every unresolved case and its precise cause. Do not launch hundreds of nested Codex investigations. Before application inference at scale, report a bounded call/token/runtime estimate and whether available model access can support it. Preserve meaningful model judgment; do not disguise a deterministic run as an agent run.
+
+6. Prepare the runnable submission package, setup instructions, prompts, evaluation/evaluation_report.md and evaluation/usage_report.md in the required archive layout. Preserve the real transcript and separate trace-export instructions. Report measured usage and unavailable measurements honestly.
+
+Generate the final submission output.csv only when all 518 rows pass the contract and evidence checks. Otherwise, save supported partial results separately, identify the exact delivery blocker, and do not claim the submission is complete.
+
+Keep reference answers exclusively in evaluation. Never hardcode expected labels, case-specific answers, evidence-ID answers, filename-specific overrides, numeric-suffix identity rules, or reference-derived identifiers.
+
+No new architecture expansion, repeated benchmarks, PRs, or planning documents. Preserve existing work and genuine logs. Stop only for a concrete missing credential, required clarification, or exhausted execution budget.
+
+End with a concise delivery report: what runs, full-dataset coverage, sample accuracy, remaining blockers, artifact paths, and exact commands I should run next.
+
+Agent Response Summary:
+Inspected the shared engine and saved artifacts, gave an ordered execution plan, and corrected unsupported visual support categorization, grounded contact-index classification and canonical support provenance, search-hit resource/query attribution, tombstone field omissions, and unknown process flags without adding an alternate decision engine or answer-specific overrides. Added independent delivery validation, a cached full-dataset CLI, local extraction setup, and an allowlisted runnable package; two public diagnostic/evaluation cycles produced 15/32 correct statuses, 1/32 whole-case agreement and 70/193 matched reference steps, with no prior resolved output regressions, 24 missing steps and zero extras among resolved cases. The full deterministic run attempted all 518 requests in 52.464495 seconds and accepted 250 supported diagnostic rows while recording exact causes for 268 unresolved cases; the publication gate withheld root output.csv, and 192 full-run retention proof blockers were not cleared without evidence. Made no new live model calls or benchmarks, preserved previous genuine traces, reported the measured historical usage separately from projections and unavailable quota/cost, and kept all references in evaluation only. Built code.zip with root evaluation reports, setup instructions, prompts in source, and separate trace-export instructions; all 71 independent tests passed both locally and from a clean archive extraction, but a complete validated submission remains blocked.
+
+Actions:
+* Read repository instructions/current implementation and saved diagnostics; audited prediction code for case, evidence, filename, answer-label and numeric-suffix overrides.
+* Updated code/ghost_audit/public_index.py, engine.py, semantic.py, server.py and runtime.py; added contract.py and delivery.py; extended code/main.py and added code/package.py, requirements.txt, tests/test_delivery.py and semantic regressions.
+* Ran two public diagnostics and post-prediction evaluations under runs/delivery-public-cycle1 and runs/delivery-public-final; made no further public prediction/evaluation cycle. Independently checked the final visual structure guard preserved the complete normalized observation list byte-for-byte in canonical JSON hash.
+* Ran python3 code/main.py diagnostic --visual-cache runs/visual-cache --run-dir runs/delivery-full --publish-output output.csv; saved 518 case reports, summary, unresolved inventory and supported_partial.csv; exit 2 correctly signaled unresolved coverage and no output.csv was created.
+* Checked Codex CLI 0.163.0 login status (authenticated via ChatGPT, quota unknown) without reading authentication files or invoking application inference; retained prior usage and failures separately.
+* Wrote README.md and required evaluation/evaluation_report.md and evaluation/usage_report.md; ran 71 passing independent tests, CLI help checks, git diff --check, code/package.py, archive integrity/allowlist checks and clean-extraction tests. Preserved log.txt and agent_trace_instructions.md; opened no PR and created no planning documents.
+
+Context:
+tool=Codex
+model=gpt-6.1-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none

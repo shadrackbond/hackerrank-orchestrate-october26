@@ -1,7 +1,8 @@
-"""Run one review case. This intentionally does not emit the submission output.csv."""
+"""Deletion audit: cached batch diagnostics, local extraction, or one bounded live review."""
 import argparse
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 from ghost_audit.core import Limits, rows, write_csv
@@ -10,6 +11,16 @@ from ghost_audit.runtime import run_codex
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "diagnostic":
+        from ghost_audit.delivery import main as diagnostic
+        return diagnostic(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "extract":
+        parser = argparse.ArgumentParser(description="Prepare content-hash visual caches using local PDF/OCR tools; no model calls")
+        parser.add_argument("--dataset", type=Path, default=Path(__file__).resolve().parents[1] / "dataset")
+        parser.add_argument("--visual-cache", type=Path, required=True)
+        args = parser.parse_args(sys.argv[2:])
+        print(json.dumps(prepare_visual_index(args.dataset, args.visual_cache, "local-ocr", image_extractor="local-ocr"), indent=2))
+        return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=Path(__file__).resolve().parents[1] / "dataset")
     parser.add_argument("--case", required=True)

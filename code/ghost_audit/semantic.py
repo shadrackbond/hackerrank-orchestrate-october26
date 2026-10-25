@@ -39,7 +39,7 @@ def validate_assessment(session, proposal):
     for quote in quotes:
         if not isinstance(quote, dict) or set(quote) != {"source_location", "quote", "role"} or \
                 not isinstance(quote["source_location"], str) or not isinstance(quote["role"], str) or \
-                quote["role"] not in {"RESOURCE", "SUBJECT", "CONTEXT", "STATE"} or \
+                quote["role"] not in {"RESOURCE", "SUBJECT", "CONTEXT", "STATE", "TYPE", "OWNERSHIP"} or \
                 not isinstance(quote["quote"], str) or not quote["quote"].strip() or \
                 quote["quote"] not in by_location.get(quote["source_location"], ""):
             raise Rejected("Semantic quote or source location is not supported by inspected evidence")
@@ -90,11 +90,23 @@ def validate_assessment(session, proposal):
             raise Rejected("Visual page contains an unassociated subject identifier")
         if not any(re.search(r"\b(?:order|agent|delivery|product)\b", q["quote"], re.I) for q in context):
             raise Rejected("Visual context quote does not establish shared order or support content")
+        # A ticket reference and shared order context do not identify the resource type.
+        # Type must be explicitly bound to this resource on the same customer page.
+        types = [q for q in quotes if q["role"] == "TYPE" and page(q["source_location"]) in pages
+                 and rid.casefold() in tokens(q["quote"])]
+        messages = [q for q in types if re.search(r"\b(?:conversation|message)\s+record\b", q["quote"], re.I)]
+        attachments = [q for q in types if re.search(r"\battachment\s+(?:record|resource)\b", q["quote"], re.I)]
+        if bool(messages) == bool(attachments):
+            raise Rejected("Visual resource category unproved: support reference and shared context are insufficient")
+        category = "SUPPORT_MESSAGE" if messages else "SUPPORT_ATTACHMENT"
+        ownership = [q for q in quotes if q["role"] == "OWNERSHIP" and page(q["source_location"]) in pages
+                     and rid.casefold() in tokens(q["quote"]) and any(email in tokens(q["quote"]) for email in emails)
+                     and re.search(r"\bbelongs only to\b", q["quote"], re.I)]
         observation = {"evidence_id": fid, "capture_at": meta["captured_at"], "observed_at": meta["captured_at"],
             "source_location": resource_quotes[0]["source_location"], "scope": fid + ":visual-support-record",
-            "system_id": system, "category": "SUPPORT_MESSAGE", "resource_id": rid, "state": "PRESENT",
+            "system_id": system, "category": category, "resource_id": rid, "state": "PRESENT",
             "source_origin": meta["origin"], "record": {"resource_id": rid, "requester_email": sorted(emails)[0],
-                "shared_context_verified": True}}
+                "shared_context_verified": bool(messages), "subject_only": bool(ownership)}}
     observation["semantic_proof"] = quotes
     review["observation"] = observation
     return review

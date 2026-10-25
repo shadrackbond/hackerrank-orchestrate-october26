@@ -134,7 +134,7 @@ def _policy(rule_map, obs, cutoff, condition_observations=()):
             (None, "Unsupported backup retention condition: " + condition)
     if category == "ACCOUNT_TOMBSTONE":
         stable = record.get("user_id") or record.get("subject_reference")
-        return (action, None) if isinstance(stable, str) and stable.startswith("user_") else \
+        return (action, None) if isinstance(stable, str) and bool(stable.strip()) else \
             (None, "Tombstone stable reference unproved")
     return None, "Unsupported policy condition: " + condition
 
@@ -149,7 +149,7 @@ def _compliant(action, obs):
     if action == "REDACT":
         if state == "REDACTED": return True
         if obs["category"] == "ACCOUNT_TOMBSTONE":
-            return not any(record.get(k) for k in DIRECT_FIELDS)
+            return obs["state"] == "REDACTED"
         return False
     return False
 
