@@ -39,6 +39,24 @@ def tokens(text):
     return found
 
 
+def explicit_deletion_signal(text):
+    """High-confidence authorization veto for contradictory non-deletion proposals.
+
+    The model still interprets intent in general; this rejects only requests that
+    explicitly ask to delete/erase/close or verify the already deleted state.
+    """
+    value = text.casefold()
+    if re.search(r"\b(?:do not|don't|never|no quiero)\s+(?:delete|erase|remove|eliminar)", value):
+        return False
+    if re.search(r"\b(?:delet|eras|purge|elimin|supprim|effac)\w*\b|削除", value):
+        return True
+    if re.search(r"\b(?:confirm|verify|check|audit)\b", value) and re.search(
+        r"\b(?:profile|account|personal data|remaining records)\b.{0,90}"
+        r"\b(?:gone|removed|cannot identify|no longer identify)\b", value):
+        return True
+    return False
+
+
 @dataclass(frozen=True)
 class Limits:
     tool_calls: int = 10
@@ -97,11 +115,12 @@ class EvidenceIndex:
             self.contents[fid] = text
             for token in tokens(text):
                 self.postings.setdefault(token, set()).add(fid)
-        self.complete_scope_supported = (len(self.rules) == 1
-            and self.rules[0]["data_category"] == "USER_PROFILE"
-            and self.rules[0]["required_action"] == "DELETE"
-            and not self.opaque
-            and all(Path(m["file_path"]).suffix.lower() == ".sql" for m in self.manifest.values()))
+        profile_rules = [r for r in self.rules if r["data_category"] == "USER_PROFILE"]
+        self.complete_scope_supported = (
+            len(profile_rules) == 1 and profile_rules[0]["condition"] == "Always"
+            and profile_rules[0]["required_action"] == "DELETE" and not self.opaque
+            and all(Path(m["file_path"]).suffix.lower() == ".sql"
+                    for m in self.manifest.values()))
 
     def identity(self, email, cutoff):
         candidates = []
@@ -359,6 +378,8 @@ class Investigation:
         if not isinstance(quote, str) or not quote.strip() or quote not in self.request["request_text"]:
             raise Rejected("Authorization must cite an exact request-text span")
         if not proposal["authorized"]:
+            if explicit_deletion_signal(self.request["request_text"]):
+                raise Rejected("Request explicitly authorizes a deletion audit; non-deletion proposal conflicts with request")
             if proposal["deletion_status"] != "NOT_APPLICABLE" or proposal["resources"]:
                 raise Rejected("Non-deletion intent requires NOT_APPLICABLE and no resources")
             return {"case_id": self.request["case_id"], "deletion_status": "NOT_APPLICABLE", "steps_json": []}

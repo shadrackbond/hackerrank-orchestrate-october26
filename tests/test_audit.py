@@ -102,6 +102,16 @@ class AuditTests(unittest.TestCase):
         result = session.call("propose_decision", proposal)
         self.assertEqual(result, {"case_id": "custom_historical", "deletion_status": "NOT_APPLICABLE", "steps_json": []})
 
+    def test_explicit_deletion_audit_rejects_non_deletion_proposal(self):
+        request = fixture(self.root)
+        request["request_text"] = "Please check that the profile is gone and remaining records cannot identify me."
+        session = Investigation(EvidenceIndex(self.root), request)
+        proposal = {"authorized": False, "request_quote": "profile is gone",
+                    "deletion_status": "NOT_APPLICABLE", "resources": []}
+        with self.assertRaisesRegex(Rejected, "explicitly authorizes"):
+            session.call("propose_decision", proposal)
+        self.assertIsNone(session.result)
+
     def test_historical_identifier_and_decoy(self):
         session = self.prepare()
         self.assertEqual(session.identity["user_id"], "user_target")

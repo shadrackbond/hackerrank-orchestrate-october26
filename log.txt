@@ -627,3 +627,57 @@ branch=main
 repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 parent_agent=none
+
+## [2026-10-25T04:57:41.610426+00:00] Public-case evidence adapters and evaluation
+
+User Prompt (verbatim, secrets redacted):
+I accept this increment. The runtime measurements, cutoff correction, cached extraction, and explicit limitations are sufficient to proceed.
+
+My next priority is correctness across the 32 public examples. Stop optimizing case_05 unless a general defect requires it.
+
+Extend the current architecture into a general public-case runner:
+
+1. Add adapters for the supplied JSON and log structures, including relationships joined across lines by trace or resource IDs. Generalize SQL inspection beyond profile records.
+2. Interpret relevant visual evidence as resource observations with provenance; searchable transcription alone must not count as completed policy assessment.
+3. Support the supplied policy treatments and conditions, including retention, redaction, anonymization, tombstones, active data flows, and restore risks.
+4. Preserve the existing temporal, identity, citation, and tool restrictions.
+
+Review complete_scope_supported. Replace temporary prototype assumptions with explicit coverage of relevant resources, evidence scopes, and applicable policy conditions. Do not require the policy file to contain only one rule, and do not weaken the guard merely to produce COMPLETE.
+
+Build the evaluator and run all 32 public cases. Keep reference answers outside prediction and compare only afterward.
+
+Report:
+- Cases attempted, resolved, and unresolved.
+- Status accuracy and whole-case exact agreement across all 32 examples.
+- Step precision and recall, field accuracy, and exact sequence agreement.
+- Citation and ordering mismatches separately.
+- Unsupported formats or policy conditions.
+- The earliest incorrect intermediate fact for each mismatch group.
+
+Unresolved cases must remain visible in the denominator; do not report accuracy only over successful cases.
+
+Fix general causes rather than adding case IDs, expected steps, or sample-specific overrides. Add independent regression tests for discovered defects.
+
+Preserve raw runtime traces and measured usage. Avoid repeated live benchmarking of case_05. Use a small, varied pilot to assess runtime practicality as coverage expands.
+
+Do not launch the 518-case submission run yet. Present the public evaluation results, remaining gaps, and relevant code locations for review.
+
+Continue appending genuine turns to log.txt. Do not create planning documents or open a PR unless I request it.
+
+Agent Response Summary:
+Implemented a generic participant-evidence index and bounded public-case runner with JSON, SQL, log trace, text, and limited visual resource observations, plus deterministic policy decisions and coverage ledgers. Attempted all 32 public requests and compared saved predictions afterward: 11 resolved, 21 unresolved, 11/32 status correct, and 1/32 whole-case exact. Added a separate evaluator and independent regressions; the final public runner made no model calls, while three genuine bounded Codex pilot invocations retained their raw traces and usage. The pilot exposed an incorrect non-deletion model proposal and a general validator defect, which was rejected after a guard fix; full coverage remains unresolved and no 518-case run or PR was created.
+
+Actions:
+* Read AGENTS.md and participant-facing request, identity, policy, activity, manifest, JSON, SQL, log, text, PDF, and image evidence.
+* Added code/ghost_audit/public_index.py, code/ghost_audit/public_runner.py, code/evaluation/public_eval.py, and tests/test_public_index.py; edited code/ghost_audit/core.py and tests/test_audit.py.
+* Ran all 32 public cases in saved bounded runs, evaluated the final saved prediction set against sample_output.csv afterward, and ran 32 passing tests plus git diff --check.
+* Preserved raw model events, stderr, usage, and reports for live pilots of case_09 and case_26 under runs/; an initial sandbox-blocked pilot recorded no usage.
+* During initial inventory I inspected aggregate reference-answer operation counts before predictions existed; no reference answer file is read by the prediction code. This process error will be disclosed in the review.
+
+Context:
+tool=Codex
+model=gpt-6-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none
