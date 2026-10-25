@@ -562,3 +562,68 @@ branch=main
 repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 parent_agent=none
+
+## [2026-10-25T04:39:52.294357+00:00] Evidence coverage and runtime efficiency increment
+
+User Prompt (verbatim, secrets redacted):
+I accept this as the first prototype checkpoint. It demonstrates a real model interaction, but I am not treating the matching public answer as proof of exhaustive coverage or readiness for all 518 cases.
+
+My next priorities are evidence coverage and runtime efficiency.
+
+First, review the current implementation and report:
+
+1. Explain what caused the 104,774 input tokens in the representative run. Separate cached and uncached input without counting cached tokens twice. Identify which instructions, tools, and context the child runtime receives.
+2. Show the configuration that restricts the child runtime to our case-scoped tools. Add a negative test proving it cannot access reference answers, unrelated files, or unapproved tools.
+3. Explain precisely what the coverage ledger proves and what it currently cannot prove.
+
+Then implement the next bounded increment:
+
+- Add extraction and indexing for the deferred PDF/image evidence, preserving evidence IDs, capture times, observation times, and source locations.
+- Cache extraction by content hash so shared artifacts are processed once.
+- Re-run the representative investigation with those sources included. Explain whether new findings, dependencies, remediation, or verification steps are required.
+- Keep classification correctness separate from plan completeness.
+- Demonstrate rejection followed by correction and acceptance within the configured proposal budget. Clearly label scripted test interactions separately from genuine model behavior.
+- Reduce unnecessary runtime context and compare before/after usage and latency on the same case. Preserve actual observations rather than estimating improvements.
+
+If meaningful context reduction requires another runtime adapter or model provider, explain the options and recommendation before switching. Do not assume credentials or report a mocked model as a live success.
+
+Do not launch the full 518-case run yet. Report coverage changes, tests, usage, remaining limitations, and the code locations I should review.
+
+Continue the genuine append-only transcript. Do not create planning documents or open a PR unless I request it.
+
+Agent Response Summary:
+Audited the genuine child rollout: 104,774 input tokens comprised 73,344 cached and 31,430 uncached, with six model responses and 18.820 seconds. Added content-hash cached PDF and local image OCR extraction, cutoff-safe indexing, source locations, stricter MCP boundary tests, scripted rejection/correction review, and a shorter documented child instruction file. The final live same-case run kept the evidence-backed INCOMPLETE output with 62,258 input tokens and 14.074 seconds; a separate live non-deletion case remained NOT_APPLICABLE. Recorded the failed Codex vision attempt and its actual usage, kept plan completeness uncertified, and did not run all 518 cases.
+
+Actions:
+* Read AGENTS.md, README.md, problem_statement.md, agent_trace_instructions.md and inspected native Codex rollout usage/configuration.
+* Edited code/ghost_audit/core.py, server.py, runtime.py, extraction.py, code/main.py, code/evaluation/review.py, README.md, .gitignore and tests.
+* Ran live case_05 audits, local OCR preprocessing, a live synthetic non-deletion test, scripted validator review, official Codex documentation lookup, and Python tests.
+* Recorded actual benchmark, OCR cache, native model events, and failed vision-attempt usage under runs/.
+
+Context:
+tool=Codex
+model=gpt-6-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none
+
+## [2026-10-25T04:39:52.294566+00:00] Resume evidence coverage review
+
+User Prompt (verbatim, secrets redacted):
+resume
+
+Agent Response Summary:
+Continued the active coverage and efficiency work after the user asked to resume. Verified the final live and scripted results, added scanned-PDF fallback and OCR source-location tests, and ran 23 passing independent tests plus the post-prediction public-example comparison. Preserved the model-native usage traces and appended genuine session log entries without reconstructing prior conversations.
+
+Actions:
+* Re-ran the final test suite (23 passed), scripted correction review (2 attempts within a 3-attempt budget), git diff --check, and inspected code locations.
+* Appended these two user turns to the existing shared log.txt.
+
+Context:
+tool=Codex
+model=gpt-6-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none

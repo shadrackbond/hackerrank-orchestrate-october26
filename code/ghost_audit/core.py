@@ -54,7 +54,7 @@ class EvidenceIndex:
     Nontext sources remain explicit coverage gaps.
     """
 
-    def __init__(self, dataset):
+    def __init__(self, dataset, visual_cache=None, image_model=None):
         self.dataset = Path(dataset).resolve()
         self.manifest = {r["file_id"]: r for r in rows(self.dataset / "evidence_files.csv")}
         self.identities = rows(self.dataset / "user_identities.csv")
@@ -62,6 +62,9 @@ class EvidenceIndex:
         self.activity = rows(self.dataset / "system_activity.csv")
         self.rules = rows(self.dataset / "deletion_rules.csv")
         self.contents, self.postings, self.opaque = {}, {}, []
+        self.visual_observations = {}
+        self.visual_cache = Path(visual_cache).resolve() if visual_cache else None
+        self.image_model = image_model
         self.digest = hashlib.sha256()
         for fid, meta in sorted(self.manifest.items()):
             path = (self.dataset / meta["file_path"]).resolve()
@@ -69,13 +72,36 @@ class EvidenceIndex:
                 raise Rejected("Manifest path escapes evidence directory")
             blob = path.read_bytes()
             self.digest.update(fid.encode() + blob)
-            if path.suffix not in {".sql", ".json", ".log", ".txt"}:
-                self.opaque.append(fid)
-                continue
-            text = blob.decode("utf-8")
+            if path.suffix in {".pdf", ".png"}:
+                if not self.visual_cache:
+                    self.opaque.append(fid)
+                    continue
+                from .extraction import VERSION, source_cache_path
+                cache_path = source_cache_path(self.visual_cache, blob, path.suffix.lower(), image_model)
+                if not cache_path.exists():
+                    self.opaque.append(fid)
+                    continue
+                cached = json.loads(cache_path.read_text(encoding="utf-8"))
+                if cached.get("version") != VERSION or cached.get("content_sha256") != hashlib.sha256(blob).hexdigest():
+                    self.opaque.append(fid)
+                    continue
+                observations = [{"text": segment["text"], "file_id": fid,
+                                 "observation_at": meta["captured_at"],
+                                 "source_location": meta["file_path"] + "#" + segment["location"],
+                                 "extractor": cached["extractor"]}
+                                for segment in cached["segments"]]
+                self.visual_observations[fid] = observations
+                text = "\n".join(item["text"] for item in observations)
+            else:
+                text = blob.decode("utf-8")
             self.contents[fid] = text
             for token in tokens(text):
                 self.postings.setdefault(token, set()).add(fid)
+        self.complete_scope_supported = (len(self.rules) == 1
+            and self.rules[0]["data_category"] == "USER_PROFILE"
+            and self.rules[0]["required_action"] == "DELETE"
+            and not self.opaque
+            and all(Path(m["file_path"]).suffix.lower() == ".sql" for m in self.manifest.values()))
 
     def identity(self, email, cutoff):
         candidates = []
@@ -193,6 +219,11 @@ class Investigation:
                        "discovered_resources": [], "discovered_processes": [],
                        "unresolved_contradictions": [], "remaining_gaps": ["Identity and evidence not searched"],
                        "deferred_sources": [], "candidates": [], "activity_inspected": False}
+        self.ledger["coverage_limitations"] = ([] if index.complete_scope_supported else [
+            "Only USER_PROFILE SQL state is interpreted by a policy adapter",
+            "Indexed OCR/text retrieval cannot prove an unmatched source is unrelated",
+            "Active flow, restore, retention, and other record categories lack state adapters",
+        ])
 
     def call(self, name, args):
         if self.result:
@@ -210,23 +241,17 @@ class Investigation:
         try:
             if name == "resolve_identity" and not args:
                 self.identity = self.index.identity(self.request["email"], self.request["audit_at"])
-                value = self.identity
+                # Return the first indexed search together with resolved aliases.
+                # The model still chooses what evidence to inspect next.
+                self._search_index()
+                value = {"identity": self.identity,
+                         "candidates": [self.index.manifest[fid] for fid in self.ledger["candidates"]],
+                         "deferred_sources": self.ledger["deferred_sources"]}
             elif name == "search_evidence" and not args:
                 if not self.identity:
                     raise Rejected("Resolve identity first")
-                identifiers = self.identity["aliases"] + [
-                    {"field": "resource_id", "value": rid, "source": "validated SQL observation"}
-                    for rid in self.ledger["discovered_resources"]]
-                ids = self.index.search(identifiers, self.request["audit_at"])
-                self.ledger["identifiers_searched"] = identifiers
-                self.ledger["candidates"] = ids
-                persistent_gaps = [gap for gap in self.ledger["remaining_gaps"]
-                    if gap.startswith(("Activity links", "Process-state"))]
-                self.ledger["remaining_gaps"] = persistent_gaps + ["Uninspected candidate: " + fid for fid in ids
-                    if fid not in self.ledger["eligible_sources_inspected"]]
-                self.ledger["deferred_sources"] = [fid for fid in self.index.opaque
-                    if eligible(self.index.manifest[fid]["captured_at"], self.request["audit_at"])]
-                value = {"candidates": [self.index.manifest[fid] for fid in ids],
+                self._search_index()
+                value = {"candidates": [self.index.manifest[fid] for fid in self.ledger["candidates"]],
                          "deferred_sources": self.ledger["deferred_sources"]}
             elif name == "inspect_profile_snapshot" and set(args) == {"evidence_id"}:
                 fid = args["evidence_id"]
@@ -237,34 +262,29 @@ class Investigation:
                                          self.ledger["discovered_resources"])
                 if not observations:
                     raise Rejected("No grounded profile observations")
-                value = {"observations": observations, "policy_rules": self.index.rules}
+                value = {"observations": observations,
+                         "policy_rules": [r for r in self.index.rules if r["data_category"] == "USER_PROFILE"]}
                 self.observations = [o for o in self.observations if o["evidence_id"] != fid] + observations
                 self.ledger["eligible_sources_inspected"] = sorted(set(self.ledger["eligible_sources_inspected"] + [fid]))
                 self.ledger["remaining_gaps"] = [x for x in self.ledger["remaining_gaps"] if x != "Uninspected candidate: " + fid]
                 self.ledger["discovered_resources"] = sorted({o["resource_id"] for o in self.observations})
-                searched_resources = {a["value"] for a in self.ledger["identifiers_searched"] if a["field"] == "resource_id"}
-                if not set(self.ledger["discovered_resources"]).issubset(searched_resources):
-                    self.ledger["remaining_gaps"].append("Search newly discovered resource IDs")
+                self._search_index()
+                activity = self._inspect_activity()
+                value["linked_candidates"] = [self.index.manifest[item] for item in self.ledger["candidates"]]
+                value["linked_activity"] = activity["claims_not_state_proof"]
+                value["remaining_gaps"] = self.ledger["remaining_gaps"]
+            elif name == "inspect_visual_evidence" and set(args) == {"evidence_id"}:
+                fid = args["evidence_id"]
+                if fid not in self.ledger["candidates"] or fid not in self.index.visual_observations:
+                    raise Rejected("Visual evidence must be an eligible identity-linked search candidate")
+                value = {"observations": self.index.visual_observations[fid],
+                         "note": "Transcription is retrieval evidence; category/state adapter remains required."}
+                self.ledger["eligible_sources_inspected"] = sorted(set(self.ledger["eligible_sources_inspected"] + [fid]))
+                self.ledger["remaining_gaps"] = [x for x in self.ledger["remaining_gaps"]
+                    if x != "Uninspected candidate: " + fid]
+                self.ledger["remaining_gaps"].append("Visual state adapter required: " + fid)
             elif name == "inspect_activity" and not args:
-                known = set(self.ledger["discovered_resources"])
-                if not known:
-                    raise Rejected("Discover grounded resources first")
-                identity_tokens = {a["value"].casefold() for a in self.identity["aliases"]
-                                   if a["field"] != "phone"}
-                self.claims = [r for r in self.index.activity
-                               if (r["resource_id"] in known or identity_tokens & tokens(r["details"]))
-                               and eligible(r["event_time"], self.request["audit_at"])]
-                for claim in self.claims:
-                    if claim["resource_id"] not in known:
-                        gap = "Activity links an unsupported resource: " + claim["resource_id"]
-                        if gap not in self.ledger["remaining_gaps"]:
-                            self.ledger["remaining_gaps"].append(gap)
-                    if any(word in claim["event_type"] for word in ("FLOW", "BACKUP", "RESTORE", "IMPORT")):
-                        self.ledger["discovered_processes"].append(claim["resource_id"])
-                        self.ledger["remaining_gaps"].append("Process-state adapter required: " + claim["activity_id"])
-                self.ledger["activity_inspected"] = True
-                value = {"claims_not_state_proof": self.claims,
-                         "note": "A past SYNC_RECORD success does not establish an active data flow."}
+                value = self._inspect_activity()
             elif name == "propose_decision":
                 if self.proposal_attempts >= self.limits.proposal_attempts:
                     self.halt_reason = "Proposal-attempt budget exhausted"
@@ -286,6 +306,44 @@ class Investigation:
         except Rejected as exc:
             self.trace.append({"tool": name, "arguments": args, "error": str(exc), "accepted": False})
             raise
+
+    def _search_index(self):
+        identifiers = self.identity["aliases"] + [
+            {"field": "resource_id", "value": rid, "source": "validated SQL observation"}
+            for rid in self.ledger["discovered_resources"]]
+        ids = self.index.search(identifiers, self.request["audit_at"])
+        self.ledger["identifiers_searched"] = identifiers
+        self.ledger["candidates"] = ids
+        persistent = [gap for gap in self.ledger["remaining_gaps"]
+            if gap.startswith(("Activity links", "Process-state", "Visual state adapter"))]
+        self.ledger["remaining_gaps"] = persistent + ["Uninspected candidate: " + fid for fid in ids
+            if fid not in self.ledger["eligible_sources_inspected"]]
+        self.ledger["deferred_sources"] = [fid for fid in self.index.opaque
+            if eligible(self.index.manifest[fid]["captured_at"], self.request["audit_at"])]
+
+    def _inspect_activity(self):
+        known = set(self.ledger["discovered_resources"])
+        if not known:
+            raise Rejected("Discover grounded resources first")
+        identity_tokens = {a["value"].casefold() for a in self.identity["aliases"]
+                           if a["field"] != "phone"}
+        self.claims = [r for r in self.index.activity
+                       if (r["resource_id"] in known or identity_tokens & tokens(r["details"]))
+                       and eligible(r["event_time"], self.request["audit_at"])]
+        for claim in self.claims:
+            if claim["resource_id"] not in known:
+                gap = "Activity links an unsupported resource: " + claim["resource_id"]
+                if gap not in self.ledger["remaining_gaps"]:
+                    self.ledger["remaining_gaps"].append(gap)
+            if any(word in claim["event_type"] for word in ("FLOW", "BACKUP", "RESTORE", "IMPORT")):
+                if claim["resource_id"] not in self.ledger["discovered_processes"]:
+                    self.ledger["discovered_processes"].append(claim["resource_id"])
+                gap = "Process-state adapter required: " + claim["activity_id"]
+                if gap not in self.ledger["remaining_gaps"]:
+                    self.ledger["remaining_gaps"].append(gap)
+        self.ledger["activity_inspected"] = True
+        return {"claims_not_state_proof": self.claims,
+                "note": "A past SYNC_RECORD success does not establish an active data flow."}
 
     def validate_proposal(self, proposal):
         expected = {"authorized", "request_quote", "deletion_status", "resources"}
@@ -316,8 +374,8 @@ class Investigation:
         status = "INCOMPLETE" if any(r["state"] == "PRESENT" for r in compiled) else "COMPLETE"
         if proposal["deletion_status"] != status:
             raise Rejected(f"Proposed status conflicts with evidence: required {status}")
-        if status == "COMPLETE" and self.ledger["deferred_sources"]:
-            raise Rejected("Uninspected evidence formats prevent a COMPLETE determination")
+        if status == "COMPLETE" and (self.ledger["deferred_sources"] or not self.index.complete_scope_supported):
+            raise Rejected("Uninspected or unsupported evidence/policy scope prevents a COMPLETE determination")
         return compile_output(self.request["case_id"], status, compiled)
 
     def required_resources(self):
@@ -354,6 +412,15 @@ class Investigation:
                 "internal_state": "SUPPORTED_SCOPE_RESOLVED" if self.result else "UNRESOLVED",
                 "halt_reason": self.halt_reason,
                 "global_coverage": "UNRESOLVED_DEFERRED_FORMATS" if self.ledger["deferred_sources"] else "SUPPORTED_ADAPTERS_ONLY",
+                "coverage_summary": {"manifest_sources": len(self.index.manifest),
+                                     "eligible_sources": sum(eligible(m["captured_at"], self.request["audit_at"])
+                                                             for m in self.index.manifest.values()),
+                                     "indexed_visual_sources": len(self.index.visual_observations),
+                                     "candidate_sources": len(self.ledger["candidates"]),
+                                     "inspected_sources": len(self.ledger["eligible_sources_inspected"]),
+                                     "plan_completeness_certified": self.index.complete_scope_supported
+                                         and not self.ledger["remaining_gaps"]
+                                         and not self.ledger["deferred_sources"]},
                 "scope": "SQL customer profile primary/replica snapshots; other adapters deferred",
                 "indexed_evidence_sha256": self.index.digest.hexdigest(),
                 "ledger": self.ledger, "observations": self.observations, "activity_claims": self.claims,

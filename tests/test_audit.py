@@ -132,6 +132,18 @@ class AuditTests(unittest.TestCase):
         self.assertIsNone(session.result)
         self.assertEqual(session.report()["internal_state"], "UNRESOLVED")
 
+    def test_scripted_rejection_then_correction_within_budget(self):
+        session = self.prepare()
+        with self.assertRaisesRegex(Rejected, "required INCOMPLETE"):
+            session.call("propose_decision", self.proposal(status="COMPLETE"))
+        accepted = session.call("propose_decision", self.proposal())
+        self.assertEqual(accepted["deletion_status"], "INCOMPLETE")
+        self.assertEqual(session.proposal_attempts, 2)
+        self.assertLessEqual(session.proposal_attempts, session.limits.proposal_attempts)
+        self.assertEqual([event["accepted"] for event in session.trace if event["tool"] == "propose_decision"],
+                         [False, True])
+        self.assertEqual(session.report()["internal_state"], "SUPPORTED_SCOPE_RESOLVED")
+
     def test_complete_requires_cited_absence_across_replicas(self):
         session = self.prepare(later_absence=True)
         result = session.call("propose_decision", self.proposal("COMPLETE", "proof_absent", "ABSENT"))
@@ -142,7 +154,7 @@ class AuditTests(unittest.TestCase):
     def test_unknown_formats_prevent_complete(self):
         session = self.prepare(later_absence=True)
         session.ledger["deferred_sources"] = ["opaque_image"]
-        with self.assertRaisesRegex(Rejected, "prevent a COMPLETE"):
+        with self.assertRaisesRegex(Rejected, "prevents a COMPLETE"):
             session.validate_proposal(self.proposal("COMPLETE", "proof_absent", "ABSENT"))
 
     def test_tool_proposal_and_wall_time_limits(self):

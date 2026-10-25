@@ -31,21 +31,21 @@ Your solution must:
 - Generate one prediction row for every request in `dataset/deletion_requests.csv`
 - Write the final predictions to `output.csv` in the repository root
 
-Run the starter Python entry point with:
-
-```bash
-python3 code/main.py
-```
+The current one-case Python command is shown below. The final 518-case command
+will be documented when that workflow is implemented.
 
 ### Current one-case prototype
 
 The implemented CLI currently runs one review case, not the full submission.
-It uses Python 3.11+ (standard library only) and an installed, authenticated Codex
-CLI with `exec --json` and per-tool MCP approval configuration. Credentials stay
-with the Codex login; this application does not read or copy authentication files.
+It uses Python 3.11+, Pillow, Tesseract shared libraries and English language
+data, `pdftotext`/`pdftoppm`, and an installed, authenticated Codex CLI. Install
+Pillow with `python3 -m pip install Pillow` and the OCR/PDF tools with your system
+package manager. Credentials stay with the Codex login; this application does
+not read or copy authentication files.
 
 ```bash
-python3 code/main.py --samples --case case_05 --model gpt-6-astra --run-dir runs/my-review
+python3 code/main.py --samples --case case_05 --model gpt-6-astra \
+  --visual-cache runs/visual-cache --run-dir runs/my-review
 python3 -m unittest discover -s tests -v
 python3 code/evaluation/review.py --run-dir runs/my-review --compare-sample
 ```
@@ -56,23 +56,33 @@ for timeout cleanup, so this first adapter currently requires Linux or macOS.
 
 The predictor reads request inputs, identities, identity history, policy, activity,
 and manifest-listed evidence. It never reads `sample_output.csv`; the optional
-review command reads that file only after prediction. The model invokes five
-case-scoped MCP tools; shell, apps, web search, and multi-agent tools are disabled.
+review command reads that file only after prediction. The model can invoke six
+case-scoped MCP tools; shell, patching, apps, web search, and multi-agent tools
+are disabled. The child uses a short dedicated instruction file. The read-only
+MCP boundary rejects arbitrary files and tool names; it does not provide an
+OS-level filesystem isolation guarantee.
 
 Outputs in the run directory include native model events, actual usage,
 `investigation.json` with the coverage ledger and accepted/rejected proposals, and
 `review_output.csv` only when a proposal is accepted. The review command also
-records a deliberately invalid status proposal and its validator rejection,
-explicitly labelled as a deterministic review probe rather than a model action.
+records a rejected status proposal followed by correction and acceptance,
+explicitly labelled as scripted validator interactions rather than model actions.
 
-The first semantic adapter supports complete SQL customer-profile primary/replica
-snapshots and the supplied `USER_PROFILE` deletion rule. Text sources are indexed
-once per server process. Unsupported matching evidence blocks acceptance;
-uninspected PDF/image sources are listed as deferred. An evidence-backed
-`INCOMPLETE` review can be emitted within this supported scope, but its plan is
-not certified exhaustive across deferred formats. `COMPLETE` is blocked while
-deferred sources remain. Other policies, process-state adapters, multimodal
-extraction, and full-dataset generation are not implemented yet.
+PDFs are extracted by page and line with `pdftotext`, with local OCR for scanned
+pages. Images are transcribed by local Tesseract into text lines with pixel
+bounding boxes. The visual cache key includes source bytes and extractor version;
+only files captured by the case's `audit_at` are prepared. The optional
+`--visual-extractor codex-vision` uses the configured Codex login, processing each
+image independently so later evidence cannot affect earlier extraction.
+
+The semantic adapter still supports SQL customer-profile primary/replica
+snapshots and the supplied `USER_PROFILE` deletion rule. Text and extracted
+visual sources are indexed for retrieval; OCR text alone is not a verified
+resource state. A relevant visual artifact remains an explicit state-adapter
+gap. An evidence-backed `INCOMPLETE` review can be emitted within this scope,
+but its plan is not certified exhaustive. `COMPLETE` is blocked while policy
+or evidence scope remains unsupported. Other policy categories, process-state
+interpretation, OCR quality checks, and full-dataset generation remain open.
 
 Default limits: 10 tool calls (including proposals), 3 proposal attempts, 10 seconds
 per tool, and 180 seconds for the complete model runtime. Override with

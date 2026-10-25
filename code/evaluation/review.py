@@ -32,13 +32,20 @@ def main():
     mutated = copy.deepcopy(accepted)
     mutated["deletion_status"] = "COMPLETE" if accepted["deletion_status"] == "INCOMPLETE" else "INCOMPLETE"
     try:
-        session.validate_proposal(mutated)
+        session.call("propose_decision", mutated)
     except Rejected as exc:
-        rejection = {"actor": "deterministic_review_probe_NOT_model", "proposal": mutated,
+        rejection = {"actor": "scripted_validator_probe_NOT_model", "proposal": mutated,
                      "rejected": True, "reason": str(exc)}
     else:
         raise AssertionError("Invalid status mutation was accepted")
-    result = {"invalid_proposal_probe": rejection}
+    corrected = session.call("propose_decision", accepted)
+    if corrected != report["output"]:
+        raise AssertionError("Corrected proposal did not reproduce the accepted model result")
+    result = {"scripted_sequence_NOT_model_behavior": {
+        "first": rejection, "second": {"actor": "scripted_validator_probe_NOT_model",
+        "proposal": accepted, "accepted": True, "output": corrected},
+        "proposal_attempts": session.proposal_attempts,
+        "proposal_budget": session.limits.proposal_attempts}}
     if args.compare_sample:
         expected = next(r for r in rows(args.dataset / "sample_output.csv") if r["case_id"] == report["request"]["case_id"])
         expected["steps_json"] = json.loads(expected["steps_json"])

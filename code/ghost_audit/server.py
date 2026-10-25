@@ -20,7 +20,9 @@ TOOLS = [
      "inputSchema": object_schema({})},
     {"name": "search_evidence", "description": "Search indexed participant evidence with validated identifiers. Returns eligible candidates and deferred formats.",
      "inputSchema": object_schema({})},
-    {"name": "inspect_profile_snapshot", "description": "Inspect an eligible SQL candidate across all profile replica tables. Returns observations and policy rules.",
+    {"name": "inspect_profile_snapshot", "description": "Inspect one eligible SQL profile candidate across replicas. Also return deterministic linked candidates and activity claims for discovered resources.",
+     "inputSchema": object_schema({"evidence_id": STRING})},
+    {"name": "inspect_visual_evidence", "description": "Read cached PDF/page or image/region transcription for an eligible candidate; state still requires a supported adapter.",
      "inputSchema": object_schema({"evidence_id": STRING})},
     {"name": "inspect_activity", "description": "Read eligible operational claims for discovered resources. Successful mutations do not prove state or active flows.",
      "inputSchema": object_schema({})},
@@ -41,9 +43,12 @@ def main():
     parser.add_argument("--case", required=True)
     parser.add_argument("--report", required=True)
     parser.add_argument("--limits", required=True)
+    parser.add_argument("--visual-cache")
+    parser.add_argument("--image-model")
     args = parser.parse_args()
     request = next(r for r in rows(Path(args.dataset) / args.requests) if r["case_id"] == args.case)
-    investigation = Investigation(EvidenceIndex(args.dataset), request, Limits(**json.loads(args.limits)))
+    investigation = Investigation(EvidenceIndex(args.dataset, args.visual_cache, args.image_model), request,
+                                  Limits(**json.loads(args.limits)))
     report_path = Path(args.report)
 
     def persist():
