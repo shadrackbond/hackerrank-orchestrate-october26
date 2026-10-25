@@ -197,11 +197,11 @@ class AuditTests(unittest.TestCase):
     def test_tool_timeout_cannot_be_followed_by_acceptance(self):
         session = self.prepare()
         session.limits = Limits(tool_seconds=0.001)
-        original = session.index.search
+        original = session._refresh
         def slow_search(*args):
             time.sleep(0.005)
             return original(*args)
-        with patch.object(session.index, "search", side_effect=slow_search):
+        with patch.object(session, "_refresh", side_effect=slow_search):
             with self.assertRaisesRegex(Rejected, "Tool timeout"):
                 session.call("search_evidence", {})
         with self.assertRaisesRegex(Rejected, "Tool timeout"):

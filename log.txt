@@ -869,3 +869,140 @@ branch=main
 repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
 parent_agent=none
+
+## [2026-10-25T08:54:35.869658+00:00] Evaluation-only classification of saved missing steps
+
+User Prompt (verbatim, secrets redacted):
+Pause implementation and retention-policy investigation.
+
+Using the saved context-system diagnostic, classify the 23 missing reference steps among the 14 resolved cases into:
+
+- A grounded observation exists but output compilation omitted its step.
+- Participant evidence contains the fact, but extraction or identity linking missed it.
+- The required identifier or policy fact has not been grounded.
+- A possible interpretation or evaluation discrepancy.
+
+For each group, give its step count and one concrete example showing the relevant evidence and code path. Keep reference-answer details confined to this evaluation analysis.
+
+Prioritize any demonstrated general output-compilation defect that could recover multiple steps without inventing facts. Do not implement yet.
+
+Separately, prepare one concise organizer-clarification example if a reference requires an identifier or retention condition that your inspected participant evidence does not establish. State the search scope and uncertainty; do not claim the dataset is defective.
+
+No new live model calls, benchmark runs, prediction reruns, broad searches, or code changes. Keep the response compact and preserve the genuine transcript.
+
+Never introduce hardcoded test labels, case-specific answers, filename-specific overrides, or reference-derived identifiers.
+
+Agent Response Summary:
+Compared the 23 missing reference steps with saved observations, facts, output arrays, and the existing compiler without rerunning prediction. No missing step has a saved grounded observation, and every saved policy resource received its verification; therefore no output-compilation omission or demonstrated extraction omission was established. Classified 15 steps as ungrounded identifiers/subject associations and eight as possible temporal-eligibility interpretation/evaluation issues, based on bounded checks of two previously identified participant files whose manifest capture is after cutoff. Prepared an organizer clarification about an account identifier unsupported by the saved case inspection and prior targeted lookup, explicitly limiting the search scope and uncertainty. Made no code changes, policy investigation, broad searches, live model calls, benchmarks, or prediction reruns.
+
+Actions:
+* Read AGENTS.md, runs/context-system-diagnostic saved reports, the requested public reference rows, and relevant existing compiler/linking code.
+* Inspected only targeted resource entries in the saved case sources and two previously identified post-cutoff artifacts; kept reference-derived identifiers confined to evaluation analysis.
+* Appended this genuine evaluation turn to log.txt; created no implementation or planning artifacts.
+
+Context:
+tool=Codex
+model=gpt-6.1-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none
+
+## [2026-10-25T09:26:59.584015+00:00] Historical resource graph with provenance and search coverage
+
+User Prompt (verbatim, secrets redacted):
+The diagnostic indicates missing resource associations rather than a compiler defect. My next priority is broader, grounded retrieval.
+
+Implement a general historical resource-linking pass using participant-facing evidence only:
+
+- Start from the request’s resolved subject and eligible historical identifiers.
+- Discover resource IDs through exact identifier matches, correlated trace events, identity audit history, and explicit resource relationships.
+- Follow those grounded resource IDs across eligible observations, including records whose identifiers were later removed by redaction or anonymization.
+- Preserve the provenance, timestamps, direction, and type of every link.
+- Do not associate people or resources through numeric suffixes, neighboring rows, similar names, or unexplained co-occurrence.
+- Distinguish current anonymity from absence of a historical association.
+
+Do not seed searches with resource IDs taken from reference answers. Expected answers remain exclusively in evaluation.
+
+For each remaining association gap, record which eligible sources and link types were searched. Distinguish an exhausted supported search from an adapter failure or uninspected source.
+
+Keep the audit-time boundary unchanged. Report the eight temporal discrepancies separately; do not admit later-captured evidence merely to match the references.
+
+Add independent regressions covering:
+1. An anonymized record linked through an earlier eligible observation.
+2. An unrelated anonymous record that must remain unassociated.
+3. An explicit resource relationship crossing two evidence formats.
+4. A relationship learned only after the cutoff that must be excluded.
+5. Renamed files and identifiers preserving equivalent decisions.
+
+Use existing extraction caches. Run deterministic tests and one 32-case diagnostic comparison. Report whole-case agreement, step recall, unresolved cases, and association gaps recovered or remaining.
+
+If this recovers a previously unresolved case, run at most one bounded live investigation through the shared agent tools to verify integration. Record actual usage and distinguish its result from deterministic diagnostics. Otherwise, do not spend model calls repeating an already demonstrated case.
+
+No hardcoded labels, case-specific answers, filename-specific overrides, PRs, or planning documents. Preserve the genuine transcript and report regressions honestly.
+
+Agent Response Summary:
+Implemented a shared historical association graph with exact identifier matches, eligible identity history, correlated trace provenance, explicit catalog attribution, directed resource relationships, and same-resource observation links; current anonymous state remains separate from historical attribution. Added per-source adapter/search status, uninspected-candidate status, unknown-membership association gaps, rejected conflicting links, and cutoff-safe graph caching. All 58 deterministic tests pass, including the five requested regressions and adapter-gap coverage; the one public diagnostic comparison remains at 1/32 whole-case agreement, 67/193 step recall, and 18 unresolved cases with no regressions. No new public-case resource associations or previously unresolved cases were recovered, so no live model call was made; 15 reviewed grounding gaps and eight separately tracked temporal discrepancies remain. Expected-answer identifiers were used only in the post-prediction evaluation report and never as predictor search seeds.
+
+Actions:
+* Read AGENTS.md, participant identity-history/activity schemas, current shared tools/index/evaluator code, and saved diagnostic results; reused extraction caches.
+* Added code/ghost_audit/linking.py and tests/test_historical_linking.py; updated public_index.py, engine.py, core.py, and the timeout regression to exercise the cached tool path correctly.
+* Ran 58 passing deterministic tests and git diff --check; generated one 32-case diagnostic prediction/comparison under runs/historical-link-diagnostic.
+* Saved evaluation-only association-gap and temporal-discrepancy comparisons; preserved prior live traces and recorded zero new model usage.
+
+Context:
+tool=Codex
+model=gpt-6.1-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none
+
+## [2026-10-25T09:50:50.277964+00:00] Two bounded live semantic investigations
+
+User Prompt (verbatim, secrets redacted):
+The historical-linking increment produced no public accuracy improvement. Freeze general graph and parser expansion.
+
+Use the existing diagnostics to select:
+- One unresolved case blocked by interpreting shared support context.
+- One unresolved case blocked by visual evidence assessment.
+
+Choose them from their investigation gaps, without consulting reference answers.
+
+For each, retrieve the exact eligible artifact excerpts or image regions and identify the specific unanswered question. Use the existing bounded model path to assess that question, requiring source locations and a structured proposal.
+
+The model may interpret evidence. It must not invent resource IDs, identity links, policy conditions, or missing facts. Deterministic validation must still enforce temporal eligibility, subject association, allowed policy treatments, citations, and output structure.
+
+If the current tools cannot expose the necessary evidence or accept a grounded semantic assessment, make only the minimal integration change required. Do not build a separate decision pipeline.
+
+Allow at most two live case investigations total. Do not repeat them for benchmarking. Preserve failures and actual usage; stop if the missing fact is genuinely unavailable.
+
+Afterward, compare saved predictions with references separately. Report:
+- The precise question investigated.
+- Evidence inspected.
+- Model-proposed facts and their supporting locations.
+- What validation accepted or rejected.
+- Whether either case gained a correct complete answer.
+- Actual tokens and runtime.
+
+Do not reopen the 11 retention blockers or admit later-captured evidence without new supporting information or official clarification.
+
+No hardcoded labels, reference-derived identifiers, case-specific answers, or filename-specific overrides. Preserve genuine traces and the conversation log. No PR or planning documents.
+
+Agent Response Summary:
+Selected case_10 and case_07 from saved support-context and visual gaps without consulting reference answers, and exposed exact eligible correlated log and cached PDF page/line units through narrow tools in the existing bounded engine. The support model submitted an accepted INSUFFICIENT assessment because contact-index metadata contains no conversation body; the visual model submitted accepted reference/subject/shared-order quotes, while storage-object state remained unproved. The visual integration assigned SUPPORT_MESSAGE and REDACT from that assessment, but the separate reference comparison expects DELETE; shared context alone does not establish that category/treatment, and neither investigation produced an accepted final row or whole-case match. Exactly two live gpt-6-sol runtime investigations finished: support used 116381 input tokens (102784 cached), 677 output tokens, 27.110 seconds, and eight usage-bearing responses; visual used 141192 input tokens (125312 cached), 928 output tokens, 30.202 seconds, and nine usage-bearing responses. Preserved initial inspection-before-identity rejections and all raw events/usage, passed 62 scripted independent tests, and stopped without more live calls, benchmarking, graph/parser expansion, retention investigation, PRs, or planning documents.
+
+Actions:
+* Read AGENTS.md, saved historical-link diagnostics, and the selected eligible log/PDF excerpts; saved the pre-reference selection and evidence packets under runs/semantic-review-inputs.
+* Added code/ghost_audit/semantic.py and tests/test_semantic_tools.py; integrated source-quoted semantic tools into core.py, engine.py, server.py, and optional focused runtime prompts in runtime.py.
+* Ran 62 passing deterministic tests and git diff --check; invoked the existing Codex child runtime exactly twice with limits of 10 tool calls, 3 shared proposal attempts, and 90 seconds per case.
+* Preserved model_events.jsonl, investigation.json, model_prompt.txt, runtime_stderr.txt, and usage.json under runs/semantic-support-live and runs/semantic-visual-live.
+* Opened selected public reference rows only after both live runs completed; saved the evaluation separately and distinguished matching resource facts from category/treatment correctness.
+
+Context:
+tool=Codex
+model=gpt-6.1-sol
+branch=main
+repo_root=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+worktree=/home/senku/Desktop/Projects/hackerrank-orchestrate-october26
+parent_agent=none

@@ -16,6 +16,8 @@ def object_schema(properties):
 STRING = {"type": "string"}
 RESOURCE = object_schema({k: STRING for k in
     ("system_id", "resource_id", "state", "required_action", "evidence_id")})
+QUOTE = object_schema({"source_location": STRING, "quote": STRING,
+                       "role": {"type": "string", "enum": ["RESOURCE", "SUBJECT", "CONTEXT", "STATE"]}})
 TOOLS = [
     {"name": "resolve_identity", "description": "Resolve request email to one subject and eligible historical aliases.",
      "inputSchema": object_schema({})},
@@ -27,6 +29,13 @@ TOOLS = [
      "inputSchema": object_schema({"evidence_id": STRING})},
     {"name": "inspect_activity", "description": "Read eligible operational claims for discovered resources. Successful mutations do not prove state or active flows.",
      "inputSchema": object_schema({})},
+    {"name": "read_semantic_evidence", "description": "Read exact source-located eligible artifact units after inspection. Returns correlated log excerpts or cached PDF page/line text; no file paths accepted.",
+     "inputSchema": object_schema({"evidence_id": STRING})},
+    {"name": "propose_semantic_assessment", "description": "Submit a narrow source-quoted support-context or visual-support-record interpretation. INSUFFICIENT preserves missing facts. Shares the proposal budget; cannot alter identity, retention, or arbitrary resource state.",
+     "inputSchema": object_schema({"kind": {"type": "string", "enum": ["SUPPORT_SHARED_CONTEXT", "VISUAL_SUPPORT_RECORD"]},
+         "evidence_id": STRING, "system_id": STRING, "resource_id": STRING,
+         "conclusion": {"type": "string", "enum": ["CONFIRMED", "INSUFFICIENT"]},
+         "supporting_quotes": {"type": "array", "items": QUOTE}, "explanation": STRING})},
     {"name": "propose_decision", "description": "Validate an intent and resource-treatment proposal; returns canonical output or rejection. No deletion is executed.",
      "inputSchema": object_schema({"authorized": {"type": "boolean"}, "request_quote": STRING,
          "deletion_status": {"type": "string", "enum": ["COMPLETE", "INCOMPLETE", "NOT_APPLICABLE"]},

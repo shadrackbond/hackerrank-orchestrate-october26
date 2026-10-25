@@ -65,13 +65,13 @@ def child_config(code, mcp_args, instruction_file, limits):
         "mcp_servers.ghost.required": "true",
     }
     for tool in ("resolve_identity", "search_evidence", "inspect_evidence", "inspect_visual_evidence",
-                 "inspect_activity", "propose_decision"):
+                 "inspect_activity", "read_semantic_evidence", "propose_semantic_assessment", "propose_decision"):
         config[f"mcp_servers.ghost.tools.{tool}.approval_mode"] = '"auto"'
     return config
 
 
 def run_codex(dataset, request, request_file, run_dir, model, limits=Limits(), visual_cache=None,
-              visual_extractor="local-ocr"):
+              visual_extractor="local-ocr", focus=None):
     run_dir = Path(run_dir).resolve()
     run_dir.mkdir(parents=True, exist_ok=False)
     report = run_dir / "investigation.json"
@@ -95,6 +95,15 @@ def run_codex(dataset, request, request_file, run_dir, model, limits=Limits(), v
             command += ["-c", f"{key}={value}"]
         command += ["-"]
         prompt = PROMPT + "\nRequest:\n" + json.dumps(request, ensure_ascii=False)
+        if focus:
+            prompt += ("\nBounded semantic investigation focus:\n" + json.dumps(focus, ensure_ascii=False) +
+                "\nInspect the selected candidate, then use read_semantic_evidence and submit a structured "
+                "propose_semantic_assessment with exact quotes and source locations. A missing fact requires INSUFFICIENT. "
+                "Do not invent identity links, resource IDs, shared context, retention conditions, or object equivalence. "
+                "Use the existing supplied category and policy; the semantic tools only accept narrow support interpretations. "
+                "After the assessment, inspect activity and propose a final decision only if all gaps are resolved. "
+                "If a genuine fact is unavailable, stop and explain the gap. Do not reopen retention blockers. "
+                "Semantic and final proposals share the same proposal-attempt budget.")
         (run_dir / "model_prompt.txt").write_text(prompt, encoding="utf-8")
         outcome = "finished"
         # Kill the process group on timeout so the MCP child cannot continue.

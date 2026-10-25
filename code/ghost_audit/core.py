@@ -164,6 +164,7 @@ class Investigation:
         self.tool_calls = self.proposal_attempts = 0
         self.trace, self.observations, self.claims = [], [], []
         self.inspected = set()
+        self.semantic_reviews, self.semantic_observations = [], []
         self.activity_inspected = False
         self.assessment = None
         self.ledger = {"identifiers_searched": [], "candidates": [], "eligible_sources_inspected": [],
@@ -174,7 +175,8 @@ class Investigation:
     def _refresh(self):
         if self.identity:
             from .engine import assess
-            self.assessment = assess(self.index, self.request, self.identity, self.inspected, self.activity_inspected)
+            self.assessment = assess(self.index, self.request, self.identity, self.inspected, self.activity_inspected,
+                                     self.semantic_observations)
             self.ledger = self.assessment["ledger"]
             self.observations = self.assessment["observations"]
             self.claims = self.assessment["activity_claims"]
@@ -220,6 +222,8 @@ class Investigation:
                 self._refresh()
                 # Existing inspection names are compatibility aliases to this same adapter.
                 value = {"observations": [o for o in self.observations if o["evidence_id"] == fid],
+                    "resource_links": [e for e in self.ledger.get("association_search", {}).get("links", [])
+                                       if any(p["evidence_id"] == fid for p in e["proof"])],
                     "contextual_evidence": [c for c in self.ledger.get("contextual_evidence", []) if c["evidence_id"] == fid],
                     "policy_rules": self.index.rules, "resources": self.required_resources(),
                     "linked_candidates": [self.index.manifest[item] for item in self.ledger["candidates"]],
@@ -228,6 +232,27 @@ class Investigation:
                     value["transcription_not_policy_proof"] = self.index.visual_observations[fid]
             elif name == "inspect_activity" and not args:
                 value = self._inspect_activity()
+            elif name == "read_semantic_evidence" and set(args) == {"evidence_id"}:
+                from .semantic import evidence_units
+                fid = args["evidence_id"]
+                value = {"evidence_id": fid, "capture_at": self.index.manifest.get(fid, {}).get("captured_at"),
+                         "units": evidence_units(self, fid), "policy_rules": self.index.rules}
+            elif name == "propose_semantic_assessment":
+                if self.proposal_attempts >= self.limits.proposal_attempts:
+                    self.halt_reason = "Proposal-attempt budget exhausted"
+                    raise Rejected(self.halt_reason)
+                self.proposal_attempts += 1
+                from .semantic import validate_assessment
+                review = validate_assessment(self, args)
+                self.semantic_reviews.append(review)
+                if review["observation"]:
+                    observation = review["observation"]
+                    self.semantic_observations = [o for o in self.semantic_observations if
+                        (o["system_id"], o["resource_id"], o["evidence_id"]) !=
+                        (observation["system_id"], observation["resource_id"], observation["evidence_id"])] + [observation]
+                    self._refresh()
+                value = {"assessment": review, "resources": self.required_resources(),
+                         "remaining_gaps": self.ledger["remaining_gaps"]}
             elif name == "propose_decision":
                 if self.proposal_attempts >= self.limits.proposal_attempts:
                     self.halt_reason = "Proposal-attempt budget exhausted"
@@ -301,6 +326,7 @@ class Investigation:
             "facts": self.assessment["facts"] if self.assessment else [],
             "classification_status": self.assessment["classification_status"] if self.assessment else None,
             "activity_claims": self.claims, "trace": self.trace, "output": self.result,
+            "semantic_reviews": self.semantic_reviews,
             "runtime_seconds": time.monotonic() - self.started,
             "indexed_evidence_sha256": self.index.digest.hexdigest(),
             "coverage_summary": {"plan_completeness_certified": bool(self.assessment and self.assessment["output"])}}

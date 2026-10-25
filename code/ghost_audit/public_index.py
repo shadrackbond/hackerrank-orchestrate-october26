@@ -248,7 +248,7 @@ def _sql_rows(text, meta, inventories=None):
         db.close()
 
 
-def _log_rows(text, meta):
+def _log_rows(text, meta, link_records=None):
     traces = defaultdict(list)
     out = []
     for n, line in enumerate(text.splitlines(), 1):
@@ -277,6 +277,20 @@ def _log_rows(text, meta):
         if not payload.get("service"):
             found = re.search(r"\b(?:service|function)=([\w_]+)", line)
             if found: payload["service"] = found[1]
+        # Supplied syslog, bracketed application, and pipe-delimited envelopes
+        # carry the service/event outside the key-value payload.
+        envelope = re.match(r"^\S+\s+<\d+>1\s+\S+\s+(\w+)\s+((?:tr|rb)-[\w-]+)", line)
+        bracket = re.match(r"^\S+\s+\[\w+\]\s+\[(\w+)\]\s+\[((?:tr|rb)-[\w-]+)\]\s+(\w+):", line)
+        pipe = line.split(" | ")
+        if envelope or bracket:
+            match_env = envelope or bracket
+            payload.setdefault("service", match_env[1])
+            trace = trace or match_env[2]
+            if bracket: payload.setdefault("event", bracket[3])
+        elif len(pipe) >= 6:
+            payload.setdefault("service", pipe[2].strip())
+            payload.setdefault("event", pipe[4].strip())
+            trace = trace or pipe[3].strip()
         payload = {key: None if isinstance(value, str) and value in {"null", "None", "NULL"} else value
                    for key, value in payload.items()}
         traces[trace or f"line-{n}"].append((n, match[1], payload, line))
@@ -301,6 +315,10 @@ def _log_rows(text, meta):
                             link_values[key].add(str(payload[key]).casefold())
             if any(len(values) > 1 for values in link_values.values()):
                 joined["_ambiguous_identity_trace"] = True
+            trace_proof = [{"evidence_id": meta["file_id"], "captured_at": meta["captured_at"],
+                            "observed_at": link_at, "source_location": meta["file_path"] + f"#line={line_no},trace={trace}",
+                            "event": payload.get("event", ""), "fields": payload}
+                           for line_no, link_at, payload, _ in lines if eligible(link_at, at)]
             system = row.get("system", row.get("service", ""))
             category = row.get("record_type") or {
                 "account_service": "USER_PROFILE", "profile_service": "USER_PROFILE",
@@ -311,6 +329,11 @@ def _log_rows(text, meta):
             }.get(system)
             if event == "contact_lookup_completed" and system == "analytics_platform":
                 category = "SECONDARY_IDENTIFIER"
+            if link_records is not None:
+                link_records.append({"evidence_id": meta["file_id"], "capture_at": meta["captured_at"],
+                    "observed_at": at, "source_location": meta["file_path"] + f"#line={n},trace={trace}",
+                    "system_id": system, "resource_id": str(joined.get("resource_id") or ""),
+                    "category": category, "record": joined, "trace_proof": trace_proof})
             if not category:
                 continue
             if category == "SEARCH_INDEX_ENTRY" and row.get("result") in {"hit", "hits"}:
@@ -319,7 +342,9 @@ def _log_rows(text, meta):
                 state = "ABSENT"
             else: state = None
             scope = f"{meta['file_id']}:log:{system}:{trace or n}"
-            out.append(_obs(meta, f"line={n},trace={trace}", scope, system, category, joined, at, state))
+            observation = _obs(meta, f"line={n},trace={trace}", scope, system, category, joined, at, state)
+            observation["trace_proof"] = trace_proof
+            out.append(observation)
     return out, set()
 
 
@@ -411,24 +436,33 @@ class PublicIndex(EvidenceIndex):
     def _normalize(self):
         self.observations, self.scopes, self.adapter_gaps, self.inventories = [], set(), [], []
         self.contexts = []
+        self.link_records = []
+        self.source_assessments = {}
         for fid, meta in sorted(self.manifest.items()):
             suffix = Path(meta["file_path"]).suffix.lower()
             try:
                 if suffix == ".json": found, scopes = _json_rows(json.loads(self.contents[fid]), meta)
                 elif suffix == ".sql": found, scopes = _sql_rows(self.contents[fid], meta, self.inventories)
-                elif suffix == ".log": found, scopes = _log_rows(self.contents[fid], meta)
+                elif suffix == ".log": found, scopes = _log_rows(self.contents[fid], meta, self.link_records)
                 elif suffix == ".txt": found, scopes = _handover_rows(self.contents[fid], meta)
                 elif suffix in {".png", ".pdf"}: found, scopes = _visual_rows(self, meta)
                 else:
                     self.adapter_gaps.append(f"Unsupported format: {fid}:{suffix}")
+                    self.source_assessments[fid] = {"status": "UNSUPPORTED", "adapter": suffix}
                     continue
                 self.observations.extend(o for o in found if o.get("evidence_role") != "CONTEXT")
                 self.contexts.extend(o for o in found if o.get("evidence_role") == "CONTEXT")
                 self.scopes.update(scopes)
                 if suffix in {".png", ".pdf"} and not found:
                     self.adapter_gaps.append("Visual assessment unresolved: " + fid)
+                    self.source_assessments[fid] = {"status": "UNEXTRACTED" if fid in self.opaque else "PARTIAL",
+                        "adapter": suffix, "reason": "No supported visual resource assessment"}
+                else:
+                    self.source_assessments[fid] = {"status": "LINK_SEARCH_SUPPORTED", "adapter": suffix,
+                                                   "normalized_records": len(found)}
             except (Rejected, ValueError, KeyError, TypeError) as exc:
                 self.adapter_gaps.append(f"Adapter rejected {fid}: {exc}")
+                self.source_assessments[fid] = {"status": "ADAPTER_FAILURE", "adapter": suffix, "reason": str(exc)}
         self.by_resource = defaultdict(list)
         for obs in self.observations:
             if obs["resource_id"]: self.by_resource[obs["resource_id"]].append(obs)
@@ -466,54 +500,34 @@ def linked(record, identity):
     return False
 
 
-def case_view(index, identity, cutoff):
-    """Ground resource identities before state evaluation; never join neighboring rows."""
-    eligible_obs = [o for o in index.observations
-                    if eligible(o["capture_at"], cutoff) and eligible(o["observed_at"], cutoff)]
-    known = {(o["system_id"], o["resource_id"]): o["category"] for o in eligible_obs
-             if linked(o["record"], identity)}
-    # Follow explicit resource references, with no inference from ID prefixes.
-    # An unknown source system remains a gap rather than an invented account row.
-    pending = list(known)
-    while pending:
-        key = pending.pop()
-        for obs in eligible_obs:
-            if (obs["system_id"], obs["resource_id"]) != key: continue
-            source_id = obs["record"].get("source_resource_id")
-            if not source_id: continue
-            targets = {(o["system_id"], o["resource_id"]): o["category"] for o in eligible_obs
-                       if o["resource_id"] == source_id and not identity_conflict(o["record"], identity)}
-            if len(targets) == 1:
-                for target, category in targets.items():
-                    if target not in known:
-                        known[target] = category
-                        pending.append(target)
-            else:
-                known.setdefault((obs["record"].get("source_system_id", ""), source_id), None)
-    links = []
-    # Explicit catalog identity links ground IDs but do not prove resource state.
-    for event in index.activity:
-        if event["event_type"] != "LINK_RESOURCE_IDENTITY" or not eligible(event["event_time"], cutoff): continue
-        values = tokens(event["details"])
-        if identity["user_id"].casefold() not in values: continue
-        other_refs = {v for v in values if v.startswith("user_") and v != identity["user_id"].casefold()}
-        if other_refs: continue
-        key = event["target_system"], event["resource_id"]
-        categories = {o["category"] for o in eligible_obs if (o["system_id"], o["resource_id"]) == key}
-        known[key] = next(iter(categories)) if len(categories) == 1 else None
-        links.append(event)
-    selected = [o for o in eligible_obs if (o["system_id"], o["resource_id"]) in known
-                and not identity_conflict(o["record"], identity)]
-    aliases = identity["aliases"] + [{"field": "resource_id", "value": rid} for system, rid in known]
-    candidates = set(index.search(aliases, cutoff)) | {o["evidence_id"] for o in selected}
-    # Only a grounded exact ID in a complete SQL table can support scoped absence.
+def case_view(index, identity, cutoff, return_search=False):
+    """Shared historical graph, followed by exact-ID complete-table checks."""
+    from .linking import link_subject, resource
+    import copy
+    # Normalized evidence is immutable; include mutable CSV inputs in the key so
+    # tests and callers that update activity/history cannot reuse stale links.
+    key = (json.dumps(identity, sort_keys=True), cutoff,
+           hash(tuple(tuple(sorted(e.items())) for e in index.activity)),
+           hash(tuple(tuple(sorted(e.items())) for e in index.history)),
+           len(index.observations), len(index.link_records))
+    cache = index.__dict__.setdefault("_link_cache", {})
+    if key not in cache: cache[key] = link_subject(index, identity, cutoff)
+    selected, candidates, known, edges, audit, catalog_claims = copy.deepcopy(cache[key])
     for inventory in index.inventories:
         fid = inventory["evidence_id"]
         if fid not in candidates or not eligible(inventory["captured_at"], cutoff): continue
         for (system, rid), category in known.items():
             if not category or inventory["system_id"] not in {"*", system} or inventory["category"] not in {"*", category}: continue
             if (system, rid) in inventory["resources"]: continue
-            selected.append(_obs(inventory["meta"], "table=" + inventory["table"] + ",lookup=" + rid,
+            observation = _obs(inventory["meta"], "table=" + inventory["table"] + ",lookup=" + rid,
                 fid + ":" + inventory["table"], system, category, {"resource_id": rid},
-                inventory["captured_at"], "ABSENT"))
-    return selected, sorted(candidates), known, links
+                inventory["captured_at"], "ABSENT")
+            selected.append(observation)
+            edges.append({"from": resource(system, rid), "to": {"kind": "OBSERVATION", "evidence_id": fid,
+                "source_location": observation["source_location"]}, "direction": "FROM_TO",
+                "link_type": "SAME_RESOURCE_OBSERVATION", "absence_basis": "Exact grounded ID in complete SQL table",
+                "proof": [{"evidence_id": fid, "source_location": observation["source_location"],
+                           "captured_at": observation["capture_at"], "observed_at": observation["observed_at"]}]})
+    audit["links"] = edges
+    value = selected, candidates, known, catalog_claims
+    return (*value, audit) if return_search else value

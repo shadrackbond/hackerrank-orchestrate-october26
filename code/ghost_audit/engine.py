@@ -114,7 +114,7 @@ def _policy(rule_map, obs, cutoff, condition_observations=()):
     if category == "ANALYTICS_PROFILE" or category == "PRODUCT_TELEMETRY":
         return action, None
     if category == "SUPPORT_MESSAGE":
-        return action, None if any(record.get(k) for k in ("message_text", "message_excerpt")) else \
+        return action, None if record.get("shared_context_verified") is True or any(record.get(k) for k in ("message_text", "message_excerpt")) else \
             "Shared-context condition unproved: " + obs["resource_id"]
     if category == "SUPPORT_ATTACHMENT":
         return action, None if record.get("subject_only") is True else \
@@ -187,15 +187,24 @@ def _make_output(case_id, resources):
     return {"case_id": case_id, "deletion_status": status, "steps_json": steps}
 
 
-def assess(index, request, identity, inspected, activity_inspected):
+def assess(index, request, identity, inspected, activity_inspected, semantic_observations=()):
     """Assess only inspected case-scoped observations. Used by every execution path."""
     cutoff = request["audit_at"]
-    all_obs, candidates, known, links = case_view(index, identity, cutoff)
+    all_obs, candidates, known, links, association_search = case_view(index, identity, cutoff, return_search=True)
+    for observation in semantic_observations:
+        if eligible(observation["capture_at"], cutoff) and eligible(observation["observed_at"], cutoff):
+            all_obs = [o for o in all_obs if (o["evidence_id"], o["system_id"], o["resource_id"]) !=
+                       (observation["evidence_id"], observation["system_id"], observation["resource_id"])] + [observation]
+            known[observation["system_id"], observation["resource_id"]] = observation["category"]
+    association_search["uninspected_candidate_sources"] = sorted(set(candidates) - set(inspected))
+    for source in association_search["eligible_sources"]:
+        source["state_assessment"] = "INSPECTED" if source["file_id"] in inspected else "UNINSPECTED_SOURCE"
     observations = [o for o in all_obs if o["evidence_id"] in inspected]
     contexts = [c for c in index.contexts if c["evidence_id"] in inspected
                 and eligible(c["capture_at"], cutoff) and eligible(c["observed_at"], cutoff)
                 and linked(c["record"], identity)]
     gaps = ["Uninspected candidate: " + fid for fid in candidates if fid not in inspected]
+    gaps.extend(association_search["contradictions"])
     for fid in set(candidates) & set(inspected):
         if not any(o["evidence_id"] == fid for o in observations + contexts):
             gaps.append(("Visual resource assessment unresolved: " if fid in index.visual_observations
@@ -273,6 +282,11 @@ def assess(index, request, identity, inspected, activity_inspected):
                     {e["resource_id"] for e in claims if any(word in e["event_type"] for word in ("FLOW", "RESTORE", "BACKUP", "IMPORT"))}),
                 "remaining_gaps": sorted(set(gaps)), "unresolved_contradictions": sorted(set(contradictions)),
                 "deferred_sources": deferred, "identity_links": links,
+                "association_search": association_search,
+                "association_gaps": association_search["unassociated_resources"] + [
+                    {"resource": {"system_id": system, "resource_id": rid},
+                     "reason": "Grounded resource lacks state proof", "search_scope_id": "subject_link_search"}
+                    for system, rid in known if (system, rid) not in grouped],
                 "contextual_evidence": contexts,
                 "applicable_policy_conditions": conditions, "retention_assessments": retention_checks,
                 "coverage": coverage}}
